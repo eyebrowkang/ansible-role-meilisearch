@@ -20,7 +20,7 @@ master_key = "{{ meilisearch_master_key }}"
 # Meilisearch automatically collects data from all instances that do not opt out using this flag.
 # All gathered data is used solely for the purpose of improving Meilisearch, and can be deleted at any time.
 # https://www.meilisearch.com/docs/learn/configuration/instance_options#disable-analytics
-no_analytics = "{{ meilisearch_no_analytics }}"
+no_analytics = {{ meilisearch_no_analytics }}
 
 # Sets the maximum size of accepted payloads.
 # https://www.meilisearch.com/docs/learn/configuration/instance_options#payload-limit-size
