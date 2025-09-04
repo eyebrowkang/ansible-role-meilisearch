@@ -59,7 +59,7 @@ meilisearch_snapshot_dir: "{{ meilisearch_home }}/snapshots"
 # Service configuration
 meilisearch_env: "production"
 meilisearch_http_addr: "localhost:7700"
-meilisearch_no_analytics: true
+meilisearch_no_analytics: "true"
 ```
 
 ## Dependencies
