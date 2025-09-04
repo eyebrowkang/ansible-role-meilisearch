@@ -71,7 +71,8 @@ None.
 meilisearch-playbook.yml:
 
 ```yaml
-- hosts: all
+- name: Install and config meilisearch
+  hosts: all
   become: true
 
   roles:
