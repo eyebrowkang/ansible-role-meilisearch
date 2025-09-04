@@ -1,0 +1,118 @@
+---
+- name: Create meilisearch group
+  ansible.builtin.group:
+    name: "{{ meilisearch_group }}"
+    system: true
+    state: present
+
+- name: Create meilisearch user
+  ansible.builtin.user:
+    name: "{{ meilisearch_user }}"
+    group: "{{ meilisearch_group }}"
+    system: true
+    create_home: true
+    home: "{{ meilisearch_home }}"
+    shell: /sbin/nologin
+    state: present
+
+- name: Create required directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ meilisearch_user }}"
+    group: "{{ meilisearch_group }}"
+    mode: '0755'
+  loop:
+    - "{{ meilisearch_config_dir }}"
+    - "{{ meilisearch_db_path }}"
+    - "{{ meilisearch_dump_dir }}"
+    - "{{ meilisearch_snapshot_dir }}"
+
+- name: Check if Meilisearch binary exists
+  ansible.builtin.stat:
+    path: "{{ meilisearch_binary_path }}"
+  register: meilisearch_binary
+
+- name: Get current Meilisearch version
+  ansible.builtin.command:
+    cmd: "{{ meilisearch_binary_path }} --version"
+  register: meilisearch_current_version
+  failed_when: false
+  changed_when: false
+  when: meilisearch_binary.stat.exists
+
+- name: Extract current version number
+  ansible.builtin.set_fact:
+    meilisearch_current_version_number: "{{ meilisearch_current_version.stdout | regex_search('meilisearch ([0-9]+\\.[0-9]+\\.[0-9]+)', '\\1') | first }}"
+  when:
+    - meilisearch_binary.stat.exists
+    - meilisearch_current_version.rc == 0
+    - meilisearch_current_version.stdout is defined
+
+- name: Set current version to empty when binary doesn't exist or version check failed
+  ansible.builtin.set_fact:
+    meilisearch_current_version_number: ""
+  when: >
+    not meilisearch_binary.stat.exists or
+    meilisearch_current_version.rc != 0 or
+    meilisearch_current_version.stdout is not defined
+
+- name: Extract desired version number
+  ansible.builtin.set_fact:
+    meilisearch_desired_version_number: "{{ meilisearch_version | regex_replace('^v', '') }}"
+
+- name: Determine system architecture
+  ansible.builtin.set_fact:
+    meilisearch_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'aarch64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
+
+- name: Download Meilisearch binary
+  ansible.builtin.get_url:
+    url: "https://github.com/meilisearch/meilisearch/releases/download/{{ meilisearch_version }}/meilisearch-linux-{{ meilisearch_arch }}"
+    dest: "{{ meilisearch_binary_path }}"
+    mode: '0755'
+    owner: root
+    group: root
+    timeout: 120
+  when: >
+    not meilisearch_binary.stat.exists or
+    (meilisearch_binary.stat.exists and
+     meilisearch_current_version_number != meilisearch_desired_version_number)
+  notify: Restart meilisearch
+  retries: 3
+  delay: 10
+
+- name: Deploy Meilisearch configuration file
+  ansible.builtin.template:
+    src: meilisearch.toml.j2
+    dest: "{{ meilisearch_config_dir }}/meilisearch.toml"
+    owner: "{{ meilisearch_user }}"
+    group: "{{ meilisearch_group }}"
+    mode: '0640'
+  notify: Restart meilisearch
+
+- name: Deploy Meilisearch environment file
+  ansible.builtin.template:
+    src: meilisearch.env.j2
+    dest: "{{ meilisearch_config_dir }}/meilisearch.env"
+    owner: "{{ meilisearch_user }}"
+    group: "{{ meilisearch_group }}"
+    mode: '0640'
+  notify: Restart meilisearch
+
+- name: Deploy systemd service file
+  ansible.builtin.template:
+    src: meilisearch.service.j2
+    dest: /etc/systemd/system/meilisearch.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart meilisearch
+
+- name: Start and enable Meilisearch service
+  ansible.builtin.systemd_service:
+    name: meilisearch
+    state: started
+    enabled: true
+    daemon_reload: true
