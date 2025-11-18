@@ -10,6 +10,7 @@ This role automates the installation of Meilisearch, a lightweight, fast and pow
 - Binary download and installation
 - Configuration file deployment
 - Systemd service setup and management
+- Obtaining meilisearch keys and storing them in facts
 
 ## Requirements
 
@@ -58,6 +59,7 @@ meilisearch_snapshot_dir: "{{ meilisearch_home }}/snapshots"
 
 # Service configuration
 meilisearch_env: "production"
+meilisearch_http_proto: "http"
 meilisearch_http_addr: "localhost:7700"
 meilisearch_no_analytics: "true"
 ```
@@ -83,6 +85,15 @@ vault.yml:
 
 ```yaml
 meilisearch_master_key: "8d98d6a3143bc0d83be006e7bacbb46c"
+```
+
+Fetching keys for use in other playbooks or roles -- this will define the facts `meilisearch_api_key` and `meilisearch_search_key`.
+
+```yaml
+- name: Fetch meilisearch keys
+  include_role:
+    name: eyebrowkang.meilisearch
+    tasks_from: fetch_keys
 ```
 
 ## License

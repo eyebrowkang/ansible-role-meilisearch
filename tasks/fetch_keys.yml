@@ -1,0 +1,36 @@
+# Use uri to fetch search and api key, assuming master key is in a variable.  Will set un-cacheable host facts.
+# Usage:
+#
+# - include_role:
+#     name: ansible-role-meilisearch
+#     tasks_from: fetch_keys
+#
+---
+- name: Request keys from meilisearch server
+  ansible.builtin.uri:
+    url: "{{ meilisearch_http_proto }}://{{ meilisearch_http_addr }}/keys"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ meilisearch_master_key }}"
+    status_code: 200
+    return_content: yes
+  register: _meilisearch_keys_response
+  when: meilisearch_search_key is undefined or meilisearch_api_key is undefined
+- name: Collect meilisearch_search_key and meilisearch_api_key from key results
+  set_fact:
+    cacheable: no
+    meilisearch_search_key: "{{ _meilisearch_keys_response.json | community.general.json_query(search_key_query) }}"
+    meilisearch_api_key: "{{ _meilisearch_keys_response.json | community.general.json_query(api_key_query) }}"
+  vars:
+    search_key_query: "results[?contains(actions[], 'search')].key | [0]"
+    api_key_query: "results[?contains(actions[], '*')].key | [0]"
+  when: meilisearch_search_key is undefined or meilisearch_api_key is undefined
+- name: Ensure keys have been obtained
+  assert:
+    that: meilisearch_search_key is defined and meilisearch_api_key is defined and meilisearch_search_key != "" and meilisearch_api_key != ""
+- name: Print keys
+  debug:
+    msg:
+      - "Meilisearch search key: {{ meilisearch_search_key }}"
+      - "API key: {{ meilisearch_api_key }}"
+    verbosity: 3

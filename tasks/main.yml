@@ -130,7 +130,7 @@
 
 - name: Check Meilisearch health endpoint
   ansible.builtin.uri:
-    url: "http://{{ meilisearch_http_addr }}/health"
+    url: "{{ meilisearch_http_proto }}://{{ meilisearch_http_addr }}/health"
     method: GET
     return_content: true
     status_code: 200
