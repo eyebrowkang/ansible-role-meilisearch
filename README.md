@@ -60,6 +60,8 @@ meilisearch_snapshot_dir: "{{ meilisearch_home }}/snapshots"
 meilisearch_env: "production"
 meilisearch_http_addr: "localhost:7700"
 meilisearch_no_analytics: "true"
+meilisearch_metrics_feature: "false"
+meilisearch_payload_size_limit: "100 MB"
 ```
 
 ## Dependencies

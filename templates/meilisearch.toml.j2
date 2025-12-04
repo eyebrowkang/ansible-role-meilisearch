@@ -24,7 +24,7 @@ no_analytics = {{ meilisearch_no_analytics }}
 
 # Sets the maximum size of accepted payloads.
 # https://www.meilisearch.com/docs/learn/configuration/instance_options#payload-limit-size
-http_payload_size_limit = "100 MB"
+http_payload_size_limit = "{{ meilisearch_payload_size_limit }}"
 
 # Defines how much detail should be present in Meilisearch's logs.
 # Meilisearch currently supports six log levels, listed in order of increasing verbosity:  `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
@@ -125,7 +125,9 @@ ssl_tickets = false
 
 # Experimental metrics feature. For more information, see: <https://github.com/meilisearch/meilisearch/discussions/3518>
 # Enables the Prometheus metrics on the `GET /metrics` endpoint.
-experimental_enable_metrics = false
+{% if meilisearch_metrics_feature %}
+experimental_enable_metrics = true
+{% endif %}
 
 # Experimental RAM reduction during indexing, do not use in production, see: <https://github.com/meilisearch/product/discussions/652>
 experimental_reduce_indexing_memory_usage = false

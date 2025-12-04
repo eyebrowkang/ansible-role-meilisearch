@@ -10,5 +10,8 @@ meilisearch_env: "production"
 meilisearch_http_addr: "localhost:7700"
 # meilisearch_master_key: "YOUR_MASTER_KEY_HERE_CHANGE_IN_PRODUCTION_AND_SHOULD_USE_VAULT"
 meilisearch_no_analytics: "true"
+meilisearch_metrics_feature: "false"
 meilisearch_dump_dir: "{{ meilisearch_home }}/dumps"
 meilisearch_snapshot_dir: "{{ meilisearch_home }}/snapshots"
+
+meilisearch_payload_size_limit: "100 MB"
