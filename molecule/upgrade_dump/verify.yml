@@ -1,0 +1,87 @@
+---
+- name: Verify dump upgrade
+  hosts: all
+  become: true
+  tasks:
+    - name: Check Meilisearch binary exists
+      ansible.builtin.stat:
+        path: /usr/local/bin/meilisearch
+      register: meilisearch_binary
+
+    - name: Assert binary exists
+      ansible.builtin.assert:
+        that:
+          - meilisearch_binary.stat.exists
+          - meilisearch_binary.stat.executable
+        fail_msg: "Meilisearch binary not found or not executable"
+
+    - name: Check Meilisearch version
+      ansible.builtin.command:
+        cmd: /usr/local/bin/meilisearch --version
+      register: version_output
+      changed_when: false
+
+    - name: Assert version is v1.26.0
+      ansible.builtin.assert:
+        that:
+          - "'1.26.0' in version_output.stdout"
+        fail_msg: "Expected version 1.26.0, got: {{ version_output.stdout }}"
+
+    - name: Check Meilisearch service is active
+      ansible.builtin.systemd_service:
+        name: meilisearch
+      register: meilisearch_service
+
+    - name: Assert service is active
+      ansible.builtin.assert:
+        that:
+          - meilisearch_service.status.ActiveState == "active"
+        fail_msg: "Meilisearch service is not active (state: {{ meilisearch_service.status.ActiveState }})"
+
+    - name: Check health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:7700/health"
+        method: GET
+        return_content: true
+        status_code: 200
+      register: health_check
+
+    - name: Assert health endpoint returns available
+      ansible.builtin.assert:
+        that:
+          - health_check.json.status == "available"
+        fail_msg: "Health endpoint did not return 'available' status"
+
+    - name: Search for test data
+      ansible.builtin.uri:
+        url: "http://localhost:7700/indexes/movies/search"
+        method: POST
+        body_format: json
+        body:
+          q: "Shawshank"
+        return_content: true
+      register: search_result
+
+    - name: Assert test data persists after dump upgrade
+      ansible.builtin.assert:
+        that:
+          - search_result.json.hits | length > 0
+          - search_result.json.hits[0].title == "The Shawshank Redemption"
+        fail_msg: "Test data did not survive dump upgrade. Search result: {{ search_result.json }}"
+
+    - name: Verify all documents exist
+      ansible.builtin.uri:
+        url: "http://localhost:7700/indexes/movies/search"
+        method: POST
+        body_format: json
+        body:
+          q: ""
+        return_content: true
+      register: all_docs
+
+    - name: Assert all 3 documents persist
+      ansible.builtin.assert:
+        that:
+          - all_docs.json.hits | length == 3
+        fail_msg: "Expected 3 documents after upgrade, got {{ all_docs.json.hits | length }}"
+        success_msg: "All 3 documents survived the dump upgrade"

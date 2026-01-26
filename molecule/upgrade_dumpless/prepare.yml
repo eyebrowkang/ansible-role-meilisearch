@@ -1,0 +1,59 @@
+---
+- name: Install Meilisearch v1.19.1 and seed test data
+  hosts: all
+  become: true
+  vars:
+    meilisearch_version: "v1.19.1"
+    meilisearch_env: "development"
+  roles:
+    - role: eyebrowkang.meilisearch
+
+  post_tasks:
+    - name: Add documents to movies index
+      ansible.builtin.uri:
+        url: "http://localhost:7700/indexes/movies/documents"
+        method: POST
+        body_format: json
+        body:
+          - id: 1
+            title: "The Shawshank Redemption"
+            genre: "Drama"
+            year: 1994
+          - id: 2
+            title: "The Dark Knight"
+            genre: "Action"
+            year: 2008
+          - id: 3
+            title: "Inception"
+            genre: "Sci-Fi"
+            year: 2010
+        status_code: 202
+        return_content: true
+      register: add_docs_response
+
+    - name: Wait for indexing to complete
+      ansible.builtin.uri:
+        url: "http://localhost:7700/tasks/{{ add_docs_response.json.taskUid }}"
+        method: GET
+        return_content: true
+      register: indexing_task
+      until: indexing_task.json.status == "succeeded"
+      retries: 30
+      delay: 2
+
+    - name: Verify documents are indexed
+      ansible.builtin.uri:
+        url: "http://localhost:7700/indexes/movies/search"
+        method: POST
+        body_format: json
+        body:
+          q: ""
+        return_content: true
+      register: search_result
+
+    - name: Assert all documents are present
+      ansible.builtin.assert:
+        that:
+          - search_result.json.hits | length == 3
+        fail_msg: "Expected 3 documents, got {{ search_result.json.hits | length }}"
+        success_msg: "Test data seeded successfully (3 documents)"

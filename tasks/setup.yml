@@ -1,4 +1,9 @@
 ---
+- name: Install acl package (required for become_user)
+  ansible.builtin.package:
+    name: acl
+    state: present
+
 - name: Create meilisearch group
   ansible.builtin.group:
     name: "{{ meilisearch_group }}"

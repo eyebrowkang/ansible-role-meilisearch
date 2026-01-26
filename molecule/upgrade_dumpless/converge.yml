@@ -1,0 +1,10 @@
+---
+- name: Upgrade Meilisearch via dumpless
+  hosts: all
+  become: true
+  vars:
+    meilisearch_version: "v1.26.0"
+    meilisearch_env: "development"
+    meilisearch_upgrade: "dumpless"
+  roles:
+    - role: eyebrowkang.meilisearch

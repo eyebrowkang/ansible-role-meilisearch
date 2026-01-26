@@ -16,14 +16,14 @@
          else _meilisearch_known_checksums[meilisearch_version][meilisearch_arch]
               if meilisearch_version in _meilisearch_known_checksums
                  and meilisearch_arch in _meilisearch_known_checksums[meilisearch_version]
-         else omit }}
+         else "" }}
   when: not meilisearch_binary.stat.exists
 
 - name: Download Meilisearch binary
   ansible.builtin.get_url:
     url: "https://github.com/meilisearch/meilisearch/releases/download/{{ meilisearch_version }}/meilisearch-linux-{{ meilisearch_arch }}"
     dest: "{{ meilisearch_binary_path }}"
-    checksum: "{{ _meilisearch_effective_checksum | default(omit) }}"
+    checksum: "{{ _meilisearch_effective_checksum | default(omit, true) }}"
     mode: '0755'
     owner: root
     group: root
