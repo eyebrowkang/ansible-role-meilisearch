@@ -1,23 +1,21 @@
 ---
-- name: Validate meilisearch_env value
-  ansible.builtin.assert:
-    that:
-      - meilisearch_env in ["production", "development"]
-    fail_msg: "meilisearch_env must be 'production' or 'development' (got '{{ meilisearch_env }}')"
-
-- name: Validate master key is defined for production
-  ansible.builtin.assert:
-    that:
-      - meilisearch_master_key is defined
-    fail_msg: "meilisearch_master_key must be defined when meilisearch_env is 'production'"
-  when: meilisearch_env == "production"
+- name: Validate
+  ansible.builtin.include_tasks: validate.yml
 
 - name: Setup
   ansible.builtin.include_tasks: setup.yml
 
-- name: Upgrade
-  ansible.builtin.include_tasks: upgrade.yml
-  when: meilisearch_upgrade == "dumpless"
+- name: Version check
+  ansible.builtin.include_tasks: version_check.yml
+  when: meilisearch_upgrade != ""
+
+- name: Upgrade (dumpless)
+  ansible.builtin.include_tasks: upgrade_dumpless.yml
+  when: meilisearch_upgrade == "dumpless" and (_meilisearch_upgrade_needed | default(false) | bool)
+
+- name: Upgrade (dump)
+  ansible.builtin.include_tasks: upgrade_dump.yml
+  when: meilisearch_upgrade == "dump" and (_meilisearch_upgrade_needed | default(false) | bool)
 
 - name: Install
   ansible.builtin.include_tasks: install.yml

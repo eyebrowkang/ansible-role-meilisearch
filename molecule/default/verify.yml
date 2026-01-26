@@ -1,0 +1,41 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Check Meilisearch binary exists
+      ansible.builtin.stat:
+        path: /usr/local/bin/meilisearch
+      register: meilisearch_binary
+
+    - name: Assert binary exists
+      ansible.builtin.assert:
+        that:
+          - meilisearch_binary.stat.exists
+          - meilisearch_binary.stat.executable
+        fail_msg: "Meilisearch binary not found or not executable"
+
+    - name: Check Meilisearch service is active
+      ansible.builtin.systemd_service:
+        name: meilisearch
+      register: meilisearch_service
+
+    - name: Assert service is active
+      ansible.builtin.assert:
+        that:
+          - meilisearch_service.status.ActiveState == "active"
+        fail_msg: "Meilisearch service is not active (state: {{ meilisearch_service.status.ActiveState }})"
+
+    - name: Check health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:7700/health"
+        method: GET
+        return_content: true
+        status_code: 200
+      register: health_check
+
+    - name: Assert health endpoint returns available
+      ansible.builtin.assert:
+        that:
+          - health_check.json.status == "available"
+        fail_msg: "Health endpoint did not return 'available' status"

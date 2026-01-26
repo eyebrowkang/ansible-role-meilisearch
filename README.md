@@ -2,16 +2,22 @@
 
 An Ansible role to install, configure, and upgrade Meilisearch as a systemd service on Linux systems.
 
+> **Note:** This role targets Meilisearch v1.19+ and may not work with older versions.
+
 ## Description
 
 This role automates the deployment of [Meilisearch](https://www.meilisearch.com/), a fast and relevant search engine. It handles:
 
 - User and group creation
 - Binary download and installation (fresh install only, no version-based overwrite)
+- SHA256 checksum verification (with built-in checksums for known versions)
 - TOML configuration and environment file deployment
 - Systemd service setup and management
 - Health check verification
 - Dumpless upgrade flow for version upgrades
+- Dump-based upgrade flow for version upgrades
+- Automatic version comparison to skip unnecessary upgrades and prevent downgrades
+- Scheduled snapshot configuration
 
 ## Requirements
 
@@ -40,22 +46,26 @@ Any Linux distribution with systemd support and python3 installed. Tested on Deb
 
 ### Default Variables
 
-| Variable                      | Default                              | Description                                          |
-| ----------------------------- | ------------------------------------ | ---------------------------------------------------- |
-| `meilisearch_version`         | `"v1.19.1"`                          | Meilisearch version to install/upgrade to            |
-| `meilisearch_user`            | `"meilisearch"`                      | System user to run Meilisearch                       |
-| `meilisearch_group`           | `"meilisearch"`                      | System group for Meilisearch                         |
-| `meilisearch_home`            | `"/var/lib/meilisearch"`             | Home directory for the Meilisearch user              |
-| `meilisearch_config_dir`      | `"/etc/meilisearch"`                 | Directory for configuration files                    |
-| `meilisearch_db_path`         | `"{{ meilisearch_home }}/data"`      | Database storage path                                |
-| `meilisearch_env`             | `"production"`                       | Instance environment (`production` or `development`) |
-| `meilisearch_http_addr`       | `"localhost:7700"`                   | HTTP listen address                                  |
-| `meilisearch_no_analytics`    | `true`                               | Disable built-in telemetry                           |
-| `meilisearch_dump_dir`        | `"{{ meilisearch_home }}/dumps"`     | Directory for dump files                             |
-| `meilisearch_snapshot_dir`    | `"{{ meilisearch_home }}/snapshots"` | Directory for snapshot files                         |
-| `meilisearch_upgrade`         | `""`                                 | Set to `"dumpless"` to perform a dumpless upgrade    |
-| `meilisearch_config_template` | `"meilisearch.toml.j2"`              | Path to a custom TOML config template                |
-| `meilisearch_env_variables`   | `{}`                                 | Dict of environment variables for the env file       |
+| Variable                                       | Default                              | Description                                                              |
+| ---------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------ |
+| `meilisearch_version`                          | `"v1.19.1"`                          | Meilisearch version to install/upgrade to (must start with `v`)          |
+| `meilisearch_user`                             | `"meilisearch"`                      | System user to run Meilisearch                                           |
+| `meilisearch_group`                            | `"meilisearch"`                      | System group for Meilisearch                                             |
+| `meilisearch_home`                             | `"/var/lib/meilisearch"`             | Home directory for the Meilisearch user                                  |
+| `meilisearch_config_dir`                       | `"/etc/meilisearch"`                 | Directory for configuration files                                        |
+| `meilisearch_db_path`                          | `"{{ meilisearch_home }}/data"`      | Database storage path                                                    |
+| `meilisearch_env`                              | `"production"`                       | Instance environment (`production` or `development`)                     |
+| `meilisearch_http_addr`                        | `"localhost:7700"`                   | HTTP listen address (host:port)                                          |
+| `meilisearch_no_analytics`                     | `true`                               | Disable built-in telemetry                                               |
+| `meilisearch_dump_dir`                         | `"{{ meilisearch_home }}/dumps"`     | Directory for dump files                                                 |
+| `meilisearch_snapshot_dir`                     | `"{{ meilisearch_home }}/snapshots"` | Directory for snapshot files                                             |
+| `meilisearch_schedule_snapshot`                | `false`                              | Schedule periodic snapshots (`false` to disable, or interval in seconds) |
+| `meilisearch_upgrade`                          | `""`                                 | Upgrade mode: `""` (none), `"dump"`, or `"dumpless"`                     |
+| `meilisearch_checksum`                         | `""`                                 | SHA256 checksum for binary verification (overrides built-in checksums)   |
+| `meilisearch_upgrade_snapshot_timeout_retries` | `60`                                 | Number of retries when polling upgrade snapshot/dump task status          |
+| `meilisearch_upgrade_snapshot_poll_interval`   | `10`                                 | Seconds between polls when checking upgrade snapshot/dump task status     |
+| `meilisearch_config_template`                  | `"meilisearch.toml.j2"`             | Path to a custom TOML config template                                    |
+| `meilisearch_env_variables`                    | `{}`                                 | Dict of environment variables for the env file                           |
 
 ## Dependencies
 
@@ -84,6 +94,7 @@ None.
   vars:
     meilisearch_master_key: "{{ vault_meilisearch_master_key }}"
     meilisearch_http_addr: "0.0.0.0:7700"
+    meilisearch_schedule_snapshot: 3600
     meilisearch_env_variables:
       MEILI_LOG_LEVEL: "WARN"
   roles:
@@ -95,12 +106,28 @@ None.
 Upgrade an existing Meilisearch instance to a new version using the dumpless upgrade feature. The role will create a snapshot, stop the service, download the new binary, run the upgrade, and restart.
 
 ```yaml
-- name: Upgrade Meilisearch
+- name: Upgrade Meilisearch (dumpless)
   hosts: search
   become: true
   vars:
     meilisearch_version: "v1.20.0"
     meilisearch_upgrade: "dumpless"
+    meilisearch_master_key: "{{ vault_meilisearch_master_key }}"
+  roles:
+    - eyebrowkang.meilisearch
+```
+
+### Dump-Based Upgrade
+
+Upgrade by creating a dump, backing up the data directory, installing the new binary, and importing the dump. This is useful when the dumpless upgrade is not available or not desired.
+
+```yaml
+- name: Upgrade Meilisearch (dump)
+  hosts: search
+  become: true
+  vars:
+    meilisearch_version: "v1.20.0"
+    meilisearch_upgrade: "dump"
     meilisearch_master_key: "{{ vault_meilisearch_master_key }}"
   roles:
     - eyebrowkang.meilisearch

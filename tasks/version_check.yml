@@ -1,0 +1,36 @@
+---
+- name: Get current installed Meilisearch version
+  ansible.builtin.command:
+    cmd: "{{ meilisearch_binary_path }} --version"
+  register: _meilisearch_current_version_output
+  changed_when: false
+  failed_when: false
+
+- name: Parse current version
+  ansible.builtin.set_fact:
+    _meilisearch_current_version: >-
+      v{{ _meilisearch_current_version_output.stdout | regex_search('(\d+\.\d+\.\d+)') }}
+  when: _meilisearch_current_version_output.rc == 0
+
+- name: Display version information
+  ansible.builtin.debug:
+    msg: "Current: {{ _meilisearch_current_version | default('not installed') }} -> Target: {{ meilisearch_version }}"
+
+- name: Set upgrade needed fact (binary not found)
+  ansible.builtin.set_fact:
+    _meilisearch_upgrade_needed: true
+  when: _meilisearch_current_version_output.rc != 0
+
+- name: Set upgrade needed fact (version comparison)
+  when: _meilisearch_current_version_output.rc == 0
+  block:
+    - name: Fail if downgrade attempted
+      ansible.builtin.fail:
+        msg: >-
+          Downgrade not supported: current version {{ _meilisearch_current_version }}
+          is newer than target version {{ meilisearch_version }}
+      when: _meilisearch_current_version is version(meilisearch_version, '>')
+
+    - name: Set upgrade needed when versions differ
+      ansible.builtin.set_fact:
+        _meilisearch_upgrade_needed: "{{ _meilisearch_current_version is version(meilisearch_version, '<') }}"

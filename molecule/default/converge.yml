@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    meilisearch_env: "development"
+  roles:
+    - role: eyebrowkang.meilisearch

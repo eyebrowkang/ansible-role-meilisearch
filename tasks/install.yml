@@ -9,10 +9,21 @@
     meilisearch_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'aarch64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
   when: not meilisearch_binary.stat.exists
 
+- name: Compute effective checksum
+  ansible.builtin.set_fact:
+    _meilisearch_effective_checksum: >-
+      {{ meilisearch_checksum if meilisearch_checksum != ""
+         else _meilisearch_known_checksums[meilisearch_version][meilisearch_arch]
+              if meilisearch_version in _meilisearch_known_checksums
+                 and meilisearch_arch in _meilisearch_known_checksums[meilisearch_version]
+         else omit }}
+  when: not meilisearch_binary.stat.exists
+
 - name: Download Meilisearch binary
   ansible.builtin.get_url:
     url: "https://github.com/meilisearch/meilisearch/releases/download/{{ meilisearch_version }}/meilisearch-linux-{{ meilisearch_arch }}"
     dest: "{{ meilisearch_binary_path }}"
+    checksum: "{{ _meilisearch_effective_checksum | default(omit) }}"
     mode: '0755'
     owner: root
     group: root

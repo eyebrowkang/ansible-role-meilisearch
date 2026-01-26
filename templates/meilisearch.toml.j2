@@ -4,9 +4,14 @@
 db_path = "{{ meilisearch_db_path }}"
 env = "{{ meilisearch_env }}"
 http_addr = "{{ meilisearch_http_addr }}"
-{% if meilisearch_master_key is defined %}
+{% if meilisearch_master_key | default('') | length > 0 %}
 master_key = "{{ meilisearch_master_key }}"
 {% endif %}
 no_analytics = {{ meilisearch_no_analytics | bool | lower }}
 dump_dir = "{{ meilisearch_dump_dir }}"
 snapshot_dir = "{{ meilisearch_snapshot_dir }}"
+{% if meilisearch_schedule_snapshot is sameas false %}
+schedule_snapshot = false
+{% else %}
+schedule_snapshot = {{ meilisearch_schedule_snapshot }}
+{% endif %}

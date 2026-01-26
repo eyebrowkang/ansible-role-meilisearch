@@ -12,7 +12,11 @@ meilisearch_http_addr: "localhost:7700"
 meilisearch_no_analytics: true
 meilisearch_dump_dir: "{{ meilisearch_home }}/dumps"
 meilisearch_snapshot_dir: "{{ meilisearch_home }}/snapshots"
+meilisearch_schedule_snapshot: false
 
 meilisearch_upgrade: ""
+meilisearch_checksum: ""
+meilisearch_upgrade_snapshot_timeout_retries: 60
+meilisearch_upgrade_snapshot_poll_interval: 10
 meilisearch_config_template: "meilisearch.toml.j2"
 meilisearch_env_variables: {}

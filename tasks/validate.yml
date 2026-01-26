@@ -1,0 +1,37 @@
+---
+- name: Validate meilisearch_env value
+  ansible.builtin.assert:
+    that:
+      - meilisearch_env in ["production", "development"]
+    fail_msg: "meilisearch_env must be 'production' or 'development' (got '{{ meilisearch_env }}')"
+
+- name: Validate master key is defined for production
+  ansible.builtin.assert:
+    that:
+      - meilisearch_master_key | default('') | length > 0
+    fail_msg: "meilisearch_master_key must be defined when meilisearch_env is 'production'"
+  when: meilisearch_env == "production"
+
+- name: Validate meilisearch_upgrade value
+  ansible.builtin.assert:
+    that:
+      - meilisearch_upgrade in ["", "dump", "dumpless"]
+    fail_msg: "meilisearch_upgrade must be '', 'dump', or 'dumpless' (got '{{ meilisearch_upgrade }}')"
+
+- name: Validate meilisearch_schedule_snapshot value
+  ansible.builtin.assert:
+    that:
+      - meilisearch_schedule_snapshot is sameas false or (meilisearch_schedule_snapshot | int > 0)
+    fail_msg: "meilisearch_schedule_snapshot must be false or a positive integer (got '{{ meilisearch_schedule_snapshot }}')"
+
+- name: Validate meilisearch_version starts with v
+  ansible.builtin.assert:
+    that:
+      - meilisearch_version is match('^v')
+    fail_msg: "meilisearch_version must start with 'v' (got '{{ meilisearch_version }}')"
+
+- name: Validate meilisearch_http_addr contains colon
+  ansible.builtin.assert:
+    that:
+      - "':' in meilisearch_http_addr"
+    fail_msg: "meilisearch_http_addr must contain ':' for host:port format (got '{{ meilisearch_http_addr }}')"

@@ -1,0 +1,130 @@
+---
+- name: Check current Meilisearch service is running
+  ansible.builtin.systemd_service:
+    name: meilisearch
+  register: meilisearch_service_status
+
+- name: Assert Meilisearch service is active
+  ansible.builtin.assert:
+    that:
+      - meilisearch_service_status.status.ActiveState == "active"
+    fail_msg: "Meilisearch service must be running before dump upgrade (current state: {{ meilisearch_service_status.status.ActiveState }})"
+
+- name: Create dump via API
+  ansible.builtin.uri:
+    url: "http://{{ meilisearch_http_addr }}/dumps"
+    method: POST
+    headers: "{{ {'Authorization': 'Bearer ' + meilisearch_master_key} if meilisearch_master_key | default('') | length > 0 else omit }}"
+    status_code: 202
+    return_content: true
+  register: dump_response
+
+- name: Print dump task info
+  ansible.builtin.debug:
+    msg: "Dump task UID: {{ dump_response.json.taskUid }}"
+
+- name: Poll dump task until completion
+  ansible.builtin.uri:
+    url: "http://{{ meilisearch_http_addr }}/tasks/{{ dump_response.json.taskUid }}"
+    method: GET
+    headers: "{{ {'Authorization': 'Bearer ' + meilisearch_master_key} if meilisearch_master_key | default('') | length > 0 else omit }}"
+    return_content: true
+  register: dump_task_status
+  until: dump_task_status.json.status == "succeeded" or dump_task_status.json.status == "failed"
+  retries: "{{ meilisearch_upgrade_snapshot_timeout_retries }}"
+  delay: "{{ meilisearch_upgrade_snapshot_poll_interval }}"
+
+- name: Assert dump succeeded
+  ansible.builtin.assert:
+    that:
+      - dump_task_status.json.status == "succeeded"
+    fail_msg: "Dump task failed: {{ dump_task_status.json | to_json }}"
+    success_msg: "Dump created successfully"
+
+- name: Extract dump UID
+  ansible.builtin.set_fact:
+    _meilisearch_dump_uid: "{{ dump_task_status.json.details.dumpUid }}"
+
+- name: Print dump UID
+  ansible.builtin.debug:
+    msg: "Dump UID: {{ _meilisearch_dump_uid }}"
+
+- name: Stop Meilisearch service
+  ansible.builtin.systemd_service:
+    name: meilisearch
+    state: stopped
+
+- name: Backup data directory
+  ansible.builtin.command:
+    cmd: "mv {{ meilisearch_db_path }} {{ meilisearch_db_path }}.bak.{{ ansible_date_time.iso8601_basic_short }}"
+  changed_when: true
+
+- name: Re-create empty data directory
+  ansible.builtin.file:
+    path: "{{ meilisearch_db_path }}"
+    state: directory
+    owner: "{{ meilisearch_user }}"
+    group: "{{ meilisearch_group }}"
+    mode: '0755'
+
+- name: Determine system architecture
+  ansible.builtin.set_fact:
+    meilisearch_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'aarch64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
+
+- name: Compute effective checksum
+  ansible.builtin.set_fact:
+    _meilisearch_effective_checksum: >-
+      {{ meilisearch_checksum if meilisearch_checksum != ""
+         else _meilisearch_known_checksums[meilisearch_version][meilisearch_arch]
+              if meilisearch_version in _meilisearch_known_checksums
+                 and meilisearch_arch in _meilisearch_known_checksums[meilisearch_version]
+         else omit }}
+
+- name: Download new Meilisearch binary
+  ansible.builtin.get_url:
+    url: "https://github.com/meilisearch/meilisearch/releases/download/{{ meilisearch_version }}/meilisearch-linux-{{ meilisearch_arch }}"
+    dest: "{{ meilisearch_binary_path }}"
+    checksum: "{{ _meilisearch_effective_checksum | default(omit) }}"
+    mode: '0755'
+    owner: root
+    group: root
+    force: true
+    timeout: 120
+  retries: 3
+  delay: 10
+
+- name: Import dump into new version
+  ansible.builtin.command:
+    cmd: >-
+      {{ meilisearch_binary_path }}
+      --config-file-path {{ meilisearch_config_dir }}/meilisearch.toml
+      --import-dump {{ meilisearch_dump_dir }}/{{ _meilisearch_dump_uid }}.dump
+  become: true
+  become_user: "{{ meilisearch_user }}"
+  async: 1800
+  poll: 0
+  register: _meilisearch_import_job
+  changed_when: true
+
+- name: Wait for Meilisearch health endpoint after import
+  ansible.builtin.uri:
+    url: "http://{{ meilisearch_http_addr }}/health"
+    method: GET
+    return_content: true
+    status_code: 200
+  register: _meilisearch_import_health
+  retries: 30
+  delay: 10
+  until: _meilisearch_import_health.status == 200
+
+- name: Stop the import process
+  ansible.builtin.async_status:
+    jid: "{{ _meilisearch_import_job.ansible_job_id }}"
+    mode: cleanup
+  failed_when: false
+
+- name: Ensure Meilisearch process from import is stopped
+  ansible.builtin.command:
+    cmd: "pkill -f '{{ meilisearch_binary_path }} --config-file-path'"
+  failed_when: false
+  changed_when: true
