@@ -20,3 +20,5 @@ meilisearch_upgrade_snapshot_timeout_retries: 60
 meilisearch_upgrade_snapshot_poll_interval: 10
 meilisearch_config_template: "meilisearch.toml.j2"
 meilisearch_env_variables: {}
+meilisearch_import_health_retries: 30
+meilisearch_import_health_delay: 10

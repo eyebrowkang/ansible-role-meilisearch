@@ -20,7 +20,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths={{ meilisearch_home }} {{ meilisearch_config_dir }}
+ReadWritePaths={{ meilisearch_home }} {{ meilisearch_config_dir }} {{ meilisearch_db_path }} {{ meilisearch_dump_dir }} {{ meilisearch_snapshot_dir }}
 
 [Install]
 WantedBy=multi-user.target

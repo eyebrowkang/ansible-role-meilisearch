@@ -2,6 +2,9 @@
 - name: Validate
   ansible.builtin.include_tasks: validate.yml
 
+- name: Resolve HTTP address
+  ansible.builtin.include_tasks: resolve_http_addr.yml
+
 - name: Setup
   ansible.builtin.include_tasks: setup.yml
 

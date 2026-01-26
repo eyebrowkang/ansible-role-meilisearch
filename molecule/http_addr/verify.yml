@@ -1,0 +1,44 @@
+---
+- name: Verify http_addr scenario
+  hosts: all
+  become: true
+  tasks:
+    - name: Check Meilisearch service is active
+      ansible.builtin.systemd_service:
+        name: meilisearch
+      register: meilisearch_service
+
+    - name: Assert service is active
+      ansible.builtin.assert:
+        that:
+          - meilisearch_service.status.ActiveState == "active"
+        fail_msg: "Meilisearch service is not active (state: {{ meilisearch_service.status.ActiveState }})"
+
+    - name: Read Meilisearch config
+      ansible.builtin.slurp:
+        src: /etc/meilisearch/meilisearch.toml
+      register: meilisearch_config_raw
+
+    - name: Decode config
+      ansible.builtin.set_fact:
+        meilisearch_config_text: "{{ meilisearch_config_raw.content | b64decode }}"
+
+    - name: Assert http_addr is configured as 0.0.0.0:7700
+      ansible.builtin.assert:
+        that:
+          - meilisearch_config_text is search('http_addr = "0.0.0.0:7700"')
+        fail_msg: "Expected http_addr 0.0.0.0:7700 in config"
+
+    - name: Check health endpoint via localhost
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:7700/health"
+        method: GET
+        return_content: true
+        status_code: 200
+      register: health_check
+
+    - name: Assert health endpoint returns available
+      ansible.builtin.assert:
+        that:
+          - health_check.json.status == "available"
+        fail_msg: "Health endpoint did not return 'available' status"

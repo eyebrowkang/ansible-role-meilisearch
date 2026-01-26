@@ -1,0 +1,9 @@
+---
+- name: Converge (http_addr)
+  hosts: all
+  become: true
+  vars:
+    meilisearch_env: "development"
+    meilisearch_http_addr: "0.0.0.0:7700"
+  roles:
+    - role: eyebrowkang.meilisearch

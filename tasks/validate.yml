@@ -21,7 +21,7 @@
 - name: Validate meilisearch_schedule_snapshot value
   ansible.builtin.assert:
     that:
-      - meilisearch_schedule_snapshot is sameas false or (meilisearch_schedule_snapshot | int > 0)
+      - meilisearch_schedule_snapshot is sameas false or (not (meilisearch_schedule_snapshot is boolean) and (meilisearch_schedule_snapshot | string) is match('^[0-9]+$') and (meilisearch_schedule_snapshot | int > 0))
     fail_msg: "meilisearch_schedule_snapshot must be false or a positive integer (got '{{ meilisearch_schedule_snapshot }}')"
 
 - name: Validate meilisearch_version starts with v
@@ -30,8 +30,8 @@
       - meilisearch_version is match('^v')
     fail_msg: "meilisearch_version must start with 'v' (got '{{ meilisearch_version }}')"
 
-- name: Validate meilisearch_http_addr contains colon
+- name: Validate meilisearch_http_addr format
   ansible.builtin.assert:
     that:
-      - "':' in meilisearch_http_addr"
-    fail_msg: "meilisearch_http_addr must contain ':' for host:port format (got '{{ meilisearch_http_addr }}')"
+      - meilisearch_http_addr is match('^(\\[.+\\]|[^:]+):\\d+$')
+    fail_msg: "meilisearch_http_addr must be host:port or [IPv6]:port (got '{{ meilisearch_http_addr }}')"

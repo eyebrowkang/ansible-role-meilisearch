@@ -13,5 +13,5 @@ snapshot_dir = "{{ meilisearch_snapshot_dir }}"
 {% if meilisearch_schedule_snapshot is sameas false %}
 schedule_snapshot = false
 {% else %}
-schedule_snapshot = {{ meilisearch_schedule_snapshot }}
+schedule_snapshot = {{ meilisearch_schedule_snapshot | int }}
 {% endif %}

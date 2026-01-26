@@ -11,15 +11,15 @@
 
 - name: Wait for Meilisearch service to be ready
   ansible.builtin.wait_for:
-    host: "{{ meilisearch_http_addr.split(':')[0] }}"
-    port: "{{ meilisearch_http_addr.split(':')[1] | int }}"
+    host: "{{ _meilisearch_health_host }}"
+    port: "{{ _meilisearch_health_port }}"
     delay: 5
     timeout: 60
     state: started
 
 - name: Check Meilisearch health endpoint
   ansible.builtin.uri:
-    url: "http://{{ meilisearch_http_addr }}/health"
+    url: "{{ _meilisearch_health_url }}"
     method: GET
     return_content: true
     status_code: 200

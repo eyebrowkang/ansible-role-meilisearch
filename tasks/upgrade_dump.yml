@@ -54,10 +54,27 @@
     name: meilisearch
     state: stopped
 
+- name: Check data directory exists
+  ansible.builtin.stat:
+    path: "{{ meilisearch_db_path }}"
+  register: _meilisearch_db_path_stat
+
+- name: Check data directory contents
+  ansible.builtin.find:
+    paths: "{{ meilisearch_db_path }}"
+    file_type: any
+    hidden: true
+    recurse: false
+  register: _meilisearch_db_contents
+  when: _meilisearch_db_path_stat.stat.exists
+
 - name: Backup data directory
   ansible.builtin.command:
     cmd: "mv {{ meilisearch_db_path }} {{ meilisearch_db_path }}.bak.{{ ansible_date_time.iso8601_basic_short }}"
   changed_when: true
+  when:
+    - _meilisearch_db_path_stat.stat.exists
+    - (_meilisearch_db_contents.matched | default(0) | int) > 0
 
 - name: Re-create empty data directory
   ansible.builtin.file:
@@ -108,13 +125,13 @@
 
 - name: Wait for Meilisearch health endpoint after import
   ansible.builtin.uri:
-    url: "http://{{ meilisearch_http_addr }}/health"
+    url: "{{ _meilisearch_health_url }}"
     method: GET
     return_content: true
     status_code: 200
   register: _meilisearch_import_health
-  retries: 30
-  delay: 10
+  retries: "{{ meilisearch_import_health_retries }}"
+  delay: "{{ meilisearch_import_health_delay }}"
   until: _meilisearch_import_health.status == 200
 
 - name: Stop the import process

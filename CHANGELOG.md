@@ -11,16 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Dumpless upgrade support via `meilisearch_upgrade: "dumpless"`
 - Dump-based upgrade support via `meilisearch_upgrade: "dump"`
-- SHA256 checksum verification for binary downloads (with built-in checksums for v1.19.1)
+- SHA256 checksum verification for binary downloads (with built-in checksums for v1.19.1 and v1.33.1)
 - `meilisearch_checksum` variable to override built-in checksums
 - `meilisearch_schedule_snapshot` configuration option for periodic snapshots
 - Automatic version comparison to skip unnecessary upgrades and prevent downgrades
 - `meilisearch_config_template` variable for custom TOML config templates
 - `meilisearch_env_variables` dict for variable-driven environment file generation
+- `meilisearch_import_health_retries` and `meilisearch_import_health_delay` to tune health checks after dump import
 - `tasks/validate.yml` with comprehensive input validation (env, upgrade mode, version format, http_addr format, schedule_snapshot)
+- `tasks/resolve_http_addr.yml` to normalize `meilisearch_http_addr` for health checks
 - `tasks/version_check.yml` for upgrade version comparison
 - `tasks/upgrade_dump.yml` for dump-based upgrade flow
 - Split task files: setup.yml, install.yml, upgrade_dumpless.yml, upgrade_dump.yml, configure.yml, service.yml
+- Molecule scenarios for `http_addr` and production master key validation
 - Molecule default test scenario (vagrant/libvirt with Debian 12)
 - `.ansible-lint` configuration
 
@@ -32,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment file is now generated from `meilisearch_env_variables` dict instead of a static template
 - Restructured `tasks/main.yml` to include validation, version checking, and both upgrade paths
 - Moved `meilisearch_upgrade_snapshot_timeout_retries` and `meilisearch_upgrade_snapshot_poll_interval` from `vars/main.yml` to `defaults/main.yml` (now user-overridable)
+- Health checks now normalize wildcard/IPv6 addresses and use loopback for `0.0.0.0`/`::`
+- `meilisearch_http_addr` validation now allows `[IPv6]:port` and `meilisearch_schedule_snapshot` rejects boolean values while rendering integers
+- `meilisearch.toml.j2` renders `schedule_snapshot` as an integer
+- Systemd unit `ReadWritePaths` now includes data, dumps, and snapshots directories
+- Dump-based upgrades only back up the data directory when it exists and is non-empty
 - Rewrote README with variable reference table and example playbooks
 - Role now targets Meilisearch v1.19+ compatibility
 

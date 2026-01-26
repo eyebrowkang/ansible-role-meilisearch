@@ -1,0 +1,9 @@
+---
+- name: Converge (production + master_key)
+  hosts: all
+  become: true
+  vars:
+    meilisearch_env: "production"
+    meilisearch_master_key: "test_master_key_1234567890"
+  roles:
+    - role: eyebrowkang.meilisearch

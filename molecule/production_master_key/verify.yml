@@ -1,0 +1,63 @@
+---
+- name: Verify production + master_key scenario
+  hosts: all
+  become: true
+  tasks:
+    - name: Check Meilisearch service is active
+      ansible.builtin.systemd_service:
+        name: meilisearch
+      register: meilisearch_service
+
+    - name: Assert service is active
+      ansible.builtin.assert:
+        that:
+          - meilisearch_service.status.ActiveState == "active"
+        fail_msg: "Meilisearch service is not active (state: {{ meilisearch_service.status.ActiveState }})"
+
+    - name: Read Meilisearch config
+      ansible.builtin.slurp:
+        src: /etc/meilisearch/meilisearch.toml
+      register: meilisearch_config_raw
+
+    - name: Decode config
+      ansible.builtin.set_fact:
+        meilisearch_config_text: "{{ meilisearch_config_raw.content | b64decode }}"
+
+    - name: Assert production config includes master key
+      ansible.builtin.assert:
+        that:
+          - meilisearch_config_text is search('env = "production"')
+          - meilisearch_config_text is search('master_key = "test_master_key_1234567890"')
+        fail_msg: "Expected production env and master_key in config"
+
+    - name: Check health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:7700/health"
+        method: GET
+        return_content: true
+        status_code: 200
+      register: health_check
+
+    - name: Assert health endpoint returns available
+      ansible.builtin.assert:
+        that:
+          - health_check.json.status == "available"
+        fail_msg: "Health endpoint did not return 'available' status"
+
+    - name: Verify keys endpoint requires auth
+      ansible.builtin.uri:
+        url: "http://localhost:7700/keys"
+        method: GET
+        status_code:
+          - 401
+          - 403
+      register: keys_unauthorized
+
+    - name: Verify keys endpoint works with master key
+      ansible.builtin.uri:
+        url: "http://localhost:7700/keys"
+        method: GET
+        headers:
+          Authorization: "Bearer test_master_key_1234567890"
+        status_code: 200
+      register: keys_authorized
