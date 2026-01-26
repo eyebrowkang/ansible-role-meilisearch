@@ -13,7 +13,7 @@ This role automates the installation of Meilisearch, a lightweight, fast and pow
 
 ## Requirements
 
-- Ansible >= 2.11
+- Ansible >= 2.16
 - Target system with systemd support
 - Internet access for downloading Meilisearch binary
 
