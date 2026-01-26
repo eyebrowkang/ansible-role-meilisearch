@@ -8,7 +8,7 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory={{ meilisearch_home }}
 EnvironmentFile=-{{ meilisearch_config_dir }}/meilisearch.env
-ExecStart={{ meilisearch_binary_path }} --config-file-path {{ meilisearch_config_dir }}/meilisearch.toml
+ExecStart={{ meilisearch_binary_path }} --config-file-path {{ meilisearch_config_dir }}/meilisearch.toml{{ ' --experimental-dumpless-upgrade' if meilisearch_upgrade == 'dumpless' else '' }}
 User={{ meilisearch_user }}
 Group={{ meilisearch_group }}
 Restart=on-failure

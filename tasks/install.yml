@@ -1,0 +1,23 @@
+---
+- name: Check if Meilisearch binary exists
+  ansible.builtin.stat:
+    path: "{{ meilisearch_binary_path }}"
+  register: meilisearch_binary
+
+- name: Determine system architecture
+  ansible.builtin.set_fact:
+    meilisearch_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'aarch64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
+  when: not meilisearch_binary.stat.exists
+
+- name: Download Meilisearch binary
+  ansible.builtin.get_url:
+    url: "https://github.com/meilisearch/meilisearch/releases/download/{{ meilisearch_version }}/meilisearch-linux-{{ meilisearch_arch }}"
+    dest: "{{ meilisearch_binary_path }}"
+    mode: '0755'
+    owner: root
+    group: root
+    timeout: 120
+  when: not meilisearch_binary.stat.exists
+  notify: Restart meilisearch
+  retries: 3
+  delay: 10

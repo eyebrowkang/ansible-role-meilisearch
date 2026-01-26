@@ -1,2 +1,4 @@
 ---
 meilisearch_binary_path: /usr/local/bin/meilisearch
+meilisearch_upgrade_snapshot_timeout_retries: 60
+meilisearch_upgrade_snapshot_poll_interval: 10

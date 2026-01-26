@@ -1,0 +1,72 @@
+---
+- name: Check current Meilisearch service is running
+  ansible.builtin.systemd_service:
+    name: meilisearch
+  register: meilisearch_service_status
+
+- name: Assert Meilisearch service is active
+  ansible.builtin.assert:
+    that:
+      - meilisearch_service_status.status.ActiveState == "active"
+    fail_msg: "Meilisearch service must be running before dumpless upgrade (current state: {{ meilisearch_service_status.status.ActiveState }})"
+
+- name: Create snapshot via API
+  ansible.builtin.uri:
+    url: "http://{{ meilisearch_http_addr }}/snapshots"
+    method: POST
+    headers: "{{ {'Authorization': 'Bearer ' + meilisearch_master_key} if meilisearch_master_key is defined else omit }}"
+    status_code: 202
+    return_content: true
+  register: snapshot_response
+
+- name: Print snapshot task info
+  ansible.builtin.debug:
+    msg: "Snapshot task UID: {{ snapshot_response.json.taskUid }}"
+
+- name: Poll snapshot task until completion
+  ansible.builtin.uri:
+    url: "http://{{ meilisearch_http_addr }}/tasks/{{ snapshot_response.json.taskUid }}"
+    method: GET
+    headers: "{{ {'Authorization': 'Bearer ' + meilisearch_master_key} if meilisearch_master_key is defined else omit }}"
+    return_content: true
+  register: snapshot_task_status
+  until: snapshot_task_status.json.status == "succeeded" or snapshot_task_status.json.status == "failed"
+  retries: "{{ meilisearch_upgrade_snapshot_timeout_retries }}"
+  delay: "{{ meilisearch_upgrade_snapshot_poll_interval }}"
+
+- name: Assert snapshot succeeded
+  ansible.builtin.assert:
+    that:
+      - snapshot_task_status.json.status == "succeeded"
+    fail_msg: "Snapshot task failed: {{ snapshot_task_status.json | to_json }}"
+    success_msg: "Snapshot created successfully"
+
+- name: Stop Meilisearch service
+  ansible.builtin.systemd_service:
+    name: meilisearch
+    state: stopped
+
+- name: Backup current binary
+  ansible.builtin.copy:
+    src: "{{ meilisearch_binary_path }}"
+    dest: "{{ meilisearch_binary_path }}.bak"
+    remote_src: true
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Determine system architecture
+  ansible.builtin.set_fact:
+    meilisearch_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'aarch64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
+
+- name: Download new Meilisearch binary
+  ansible.builtin.get_url:
+    url: "https://github.com/meilisearch/meilisearch/releases/download/{{ meilisearch_version }}/meilisearch-linux-{{ meilisearch_arch }}"
+    dest: "{{ meilisearch_binary_path }}"
+    mode: '0755'
+    owner: root
+    group: root
+    force: true
+    timeout: 120
+  retries: 3
+  delay: 10

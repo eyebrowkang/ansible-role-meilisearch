@@ -1,0 +1,33 @@
+---
+- name: Deploy Meilisearch configuration file
+  ansible.builtin.template:
+    src: "{{ meilisearch_config_template }}"
+    dest: "{{ meilisearch_config_dir }}/meilisearch.toml"
+    owner: "{{ meilisearch_user }}"
+    group: "{{ meilisearch_group }}"
+    mode: '0640'
+  notify: Restart meilisearch
+
+- name: Deploy environment file
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible
+      {% for key, value in meilisearch_env_variables.items() %}
+      {{ key }}={{ value }}
+      {% endfor %}
+    dest: "{{ meilisearch_config_dir }}/meilisearch.env"
+    owner: "{{ meilisearch_user }}"
+    group: "{{ meilisearch_group }}"
+    mode: '0640'
+  notify: Restart meilisearch
+
+- name: Deploy systemd service file
+  ansible.builtin.template:
+    src: meilisearch.service.j2
+    dest: /etc/systemd/system/meilisearch.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart meilisearch

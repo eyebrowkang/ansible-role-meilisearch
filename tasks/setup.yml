@@ -1,0 +1,29 @@
+---
+- name: Create meilisearch group
+  ansible.builtin.group:
+    name: "{{ meilisearch_group }}"
+    system: true
+    state: present
+
+- name: Create meilisearch user
+  ansible.builtin.user:
+    name: "{{ meilisearch_user }}"
+    group: "{{ meilisearch_group }}"
+    system: true
+    create_home: true
+    home: "{{ meilisearch_home }}"
+    shell: /sbin/nologin
+    state: present
+
+- name: Create required directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ meilisearch_user }}"
+    group: "{{ meilisearch_group }}"
+    mode: '0755'
+  loop:
+    - "{{ meilisearch_config_dir }}"
+    - "{{ meilisearch_db_path }}"
+    - "{{ meilisearch_dump_dir }}"
+    - "{{ meilisearch_snapshot_dir }}"
