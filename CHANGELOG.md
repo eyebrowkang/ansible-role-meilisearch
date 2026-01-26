@@ -5,7 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - Unreleased
+## [2.0.0] - 2026-01-26
+
+### Breaking Changes
+
+- `meilisearch_no_analytics` changed from string `"true"` to boolean `true` (strict input validation will reject strings)
+- Environment file generation now uses `meilisearch_env_variables`; `templates/meilisearch.env.j2` was removed
+- Installation now only downloads the binary when it does not already exist (no version-based overwrite)
+- `meilisearch.toml.j2` no longer renders hardcoded defaults; `master_key` is now conditional
+- Added strict validation for `meilisearch_http_addr` and `meilisearch_schedule_snapshot` that can fail previously accepted inputs
+- Version comparison now prevents downgrades and skips upgrades when versions match
 
 ### Added
 
@@ -14,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SHA256 checksum verification for binary downloads (with built-in checksums for v1.19.1 and v1.33.1)
 - `meilisearch_checksum` variable to override built-in checksums
 - `meilisearch_schedule_snapshot` configuration option for periodic snapshots
-- Automatic version comparison to skip unnecessary upgrades and prevent downgrades
+- Automatic version comparison to skip unnecessary upgrades
 - `meilisearch_config_template` variable for custom TOML config templates
 - `meilisearch_env_variables` dict for variable-driven environment file generation
 - `meilisearch_import_health_retries` and `meilisearch_import_health_delay` to tune health checks after dump import
@@ -29,14 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Simplified installation: binary is only downloaded if it does not already exist (no version-based overwrite)
-- `meilisearch_no_analytics` changed from string `"true"` to boolean `true`
-- Simplified `meilisearch.toml.j2` template (removed hardcoded defaults, master_key is now conditional)
-- Environment file is now generated from `meilisearch_env_variables` dict instead of a static template
 - Restructured `tasks/main.yml` to include validation, version checking, and both upgrade paths
 - Moved `meilisearch_upgrade_snapshot_timeout_retries` and `meilisearch_upgrade_snapshot_poll_interval` from `vars/main.yml` to `defaults/main.yml` (now user-overridable)
 - Health checks now normalize wildcard/IPv6 addresses and use loopback for `0.0.0.0`/`::`
-- `meilisearch_http_addr` validation now allows `[IPv6]:port` and `meilisearch_schedule_snapshot` rejects boolean values while rendering integers
+- `meilisearch_http_addr` validation now allows `[IPv6]:port`
 - `meilisearch.toml.j2` renders `schedule_snapshot` as an integer
 - Systemd unit `ReadWritePaths` now includes data, dumps, and snapshots directories
 - Dump-based upgrades only back up the data directory when it exists and is non-empty
@@ -45,7 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- `templates/meilisearch.env.j2` (replaced by variable-driven generation in configure.yml)
 - Version comparison logic for binary downloads
 
 ## [1.0.0] - 2025-09-04
@@ -56,5 +60,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Install and configure Meilisearch as a systemd service
 - Configurable installation with default Meilisearch v1.19.1
 
-[1.1.0]: https://github.com/eyebrowkang/ansible-role-meilisearch/compare/1.0.0...1.1.0
+[2.0.0]: https://github.com/eyebrowkang/ansible-role-meilisearch/compare/1.0.0...2.0.0
 [1.0.0]: https://github.com/eyebrowkang/ansible-role-meilisearch/releases/tag/1.0.0
