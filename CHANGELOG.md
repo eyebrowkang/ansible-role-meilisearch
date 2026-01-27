@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `meilisearch_config_template` takes precedence over `meilisearch_config_custom_options` when both are set
-- Environment file deployment and `EnvironmentFile` in the systemd unit are skipped when `meilisearch_env_variables` is empty
+- Environment file deployment and `EnvironmentFile` in the systemd unit are skipped when `meilisearch_env_variables` is empty, and any existing env file is removed
 
 ## [2.0.0] - 2026-01-26
 

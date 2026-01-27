@@ -22,6 +22,12 @@
   when: meilisearch_env_variables | default({}, true) | length > 0
   notify: Restart meilisearch
 
+- name: Remove environment file when no variables are set
+  ansible.builtin.file:
+    path: "{{ meilisearch_config_dir }}/meilisearch.env"
+    state: absent
+  when: meilisearch_env_variables | default({}, true) | length == 0
+
 - name: Deploy systemd service file
   ansible.builtin.template:
     src: meilisearch.service.j2
