@@ -19,6 +19,7 @@
     owner: "{{ meilisearch_user }}"
     group: "{{ meilisearch_group }}"
     mode: '0640'
+  when: meilisearch_env_variables | default({}, true) | length > 0
   notify: Restart meilisearch
 
 - name: Deploy systemd service file
