@@ -15,3 +15,7 @@ schedule_snapshot = false
 {% else %}
 schedule_snapshot = {{ meilisearch_schedule_snapshot | int }}
 {% endif %}
+{% set _custom_options = meilisearch_config_custom_options | default('') %}
+{% if _custom_options | trim | length > 0 %}
+{{ _custom_options }}
+{% endif %}

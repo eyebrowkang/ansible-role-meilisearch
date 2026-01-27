@@ -67,12 +67,14 @@ Any Linux distribution with systemd support and python3 installed. Tested on Deb
 | `meilisearch_import_health_retries`            | `30`                                 | Retries when waiting for health after dump import                      |
 | `meilisearch_import_health_delay`              | `10`                                 | Seconds between health checks after dump import                        |
 | `meilisearch_config_template`                  | `"meilisearch.toml.j2"`              | Path to a custom TOML config template                                  |
+| `meilisearch_config_custom_options`            | `""`                                 | Raw TOML lines appended to the generated config file (default template only) |
 | `meilisearch_env_variables`                    | `{}`                                 | Dict of environment variables for the env file                         |
 
 ### Notes
 
 - `meilisearch_http_addr` must be `host:port` or `[IPv6]:port` (no scheme).
 - If `meilisearch_http_addr` is `0.0.0.0` or `::`, the role uses `127.0.0.1` or `::1` for internal health checks.
+- `meilisearch_config_custom_options` and `meilisearch_config_template` are mutually exclusive; if both are set, the template takes precedence and custom options are ignored.
 
 ## Dependencies
 

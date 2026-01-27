@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - Unreleased
+
+### Added
+
+- `meilisearch_config_custom_options` for appending raw TOML lines to the default config template
+
+### Changed
+
+- `meilisearch_config_template` takes precedence over `meilisearch_config_custom_options` when both are set
+
 ## [2.0.0] - 2026-01-26
 
 ### Breaking Changes
