@@ -15,8 +15,12 @@
     _meilisearch_health_host: "{{ '127.0.0.1' if _meilisearch_health_host_raw in ['0.0.0.0', '']
       else ('::1' if _meilisearch_health_host_raw == '::' else _meilisearch_health_host_raw) }}"
 
+- name: Build API base URL
+  ansible.builtin.set_fact:
+    _meilisearch_api_base_url: "{{ ('http://[' ~ _meilisearch_health_host ~ ']:' ~ _meilisearch_health_port)
+      if _meilisearch_health_host is match('.*:.*')
+      else ('http://' ~ _meilisearch_health_host ~ ':' ~ _meilisearch_health_port) }}"
+
 - name: Build health check URL
   ansible.builtin.set_fact:
-    _meilisearch_health_url: "{{ ('http://[' ~ _meilisearch_health_host ~ ']:' ~ _meilisearch_health_port ~ '/health')
-      if _meilisearch_health_host is match('.*:.*')
-      else ('http://' ~ _meilisearch_health_host ~ ':' ~ _meilisearch_health_port ~ '/health') }}"
+    _meilisearch_health_url: "{{ _meilisearch_api_base_url }}/health"

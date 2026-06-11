@@ -12,7 +12,7 @@
 
 - name: Create snapshot via API
   ansible.builtin.uri:
-    url: "http://{{ meilisearch_http_addr }}/snapshots"
+    url: "{{ _meilisearch_api_base_url }}/snapshots"
     method: POST
     headers: "{{ {'Authorization': 'Bearer ' + meilisearch_master_key} if meilisearch_master_key | default('') | length > 0 else omit }}"
     status_code: 202
@@ -25,7 +25,7 @@
 
 - name: Poll snapshot task until completion
   ansible.builtin.uri:
-    url: "http://{{ meilisearch_http_addr }}/tasks/{{ snapshot_response.json.taskUid }}"
+    url: "{{ _meilisearch_api_base_url }}/tasks/{{ snapshot_response.json.taskUid }}"
     method: GET
     headers: "{{ {'Authorization': 'Bearer ' + meilisearch_master_key} if meilisearch_master_key | default('') | length > 0 else omit }}"
     return_content: true
