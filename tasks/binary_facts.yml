@@ -1,0 +1,13 @@
+---
+- name: Determine system architecture
+  ansible.builtin.set_fact:
+    meilisearch_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'aarch64' }}"
+
+- name: Compute effective checksum
+  ansible.builtin.set_fact:
+    _meilisearch_effective_checksum: >-
+      {{ meilisearch_checksum if meilisearch_checksum != ""
+         else _meilisearch_known_checksums[meilisearch_version][meilisearch_arch]
+              if meilisearch_version in _meilisearch_known_checksums
+                 and meilisearch_arch in _meilisearch_known_checksums[meilisearch_version]
+         else "" }}

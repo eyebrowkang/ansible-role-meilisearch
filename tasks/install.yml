@@ -4,19 +4,8 @@
     path: "{{ meilisearch_binary_path }}"
   register: meilisearch_binary
 
-- name: Determine system architecture
-  ansible.builtin.set_fact:
-    meilisearch_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'aarch64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
-  when: not meilisearch_binary.stat.exists
-
-- name: Compute effective checksum
-  ansible.builtin.set_fact:
-    _meilisearch_effective_checksum: >-
-      {{ meilisearch_checksum if meilisearch_checksum != ""
-         else _meilisearch_known_checksums[meilisearch_version][meilisearch_arch]
-              if meilisearch_version in _meilisearch_known_checksums
-                 and meilisearch_arch in _meilisearch_known_checksums[meilisearch_version]
-         else "" }}
+- name: Compute binary facts
+  ansible.builtin.include_tasks: binary_facts.yml
   when: not meilisearch_binary.stat.exists
 
 - name: Download Meilisearch binary
