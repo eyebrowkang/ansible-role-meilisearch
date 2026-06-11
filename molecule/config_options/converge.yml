@@ -1,0 +1,38 @@
+---
+- name: Converge (config options)
+  hosts: all
+  become: true
+  vars:
+    meilisearch_env: "development"
+    meilisearch_schedule_snapshot: 3600
+    meilisearch_config_custom_options: |
+      log_level = "WARN"
+    meilisearch_env_variables:
+      RUST_BACKTRACE: "1"
+  roles:
+    - role: eyebrowkang.meilisearch
+
+  post_tasks:
+    - name: Read deployed config
+      ansible.builtin.slurp:
+        src: /etc/meilisearch/meilisearch.toml
+      register: config_raw
+
+    - name: Read deployed env file
+      ansible.builtin.slurp:
+        src: /etc/meilisearch/meilisearch.env
+      register: env_raw
+
+    - name: Read deployed unit file
+      ansible.builtin.slurp:
+        src: /etc/systemd/system/meilisearch.service
+      register: unit_raw
+
+    - name: Assert custom options, snapshot schedule, and env file are rendered
+      ansible.builtin.assert:
+        that:
+          - config_raw.content | b64decode is search('log_level = "WARN"')
+          - config_raw.content | b64decode is search('schedule_snapshot = 3600')
+          - env_raw.content | b64decode is search('RUST_BACKTRACE=1')
+          - unit_raw.content | b64decode is search('EnvironmentFile=-/etc/meilisearch/meilisearch.env')
+        fail_msg: "Rendered configuration does not match expected custom options"
