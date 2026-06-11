@@ -1,10 +1,6 @@
 ---
-- name: Validate meilisearch_env value
-  ansible.builtin.assert:
-    that:
-      - meilisearch_env in ["production", "development"]
-    fail_msg: "meilisearch_env must be 'production' or 'development' (got '{{ meilisearch_env }}')"
-
+# Type and choice validation (meilisearch_env, meilisearch_upgrade, ...) is
+# handled by meta/argument_specs.yml; only regex and cross-field rules live here.
 - name: Validate master key is defined for production
   ansible.builtin.assert:
     that:
@@ -23,12 +19,6 @@
     fail_msg: >-
       Meilisearch binaries are only published for x86_64 and aarch64
       (got '{{ ansible_architecture | default('undefined — this role requires gathered facts') }}')
-
-- name: Validate meilisearch_upgrade value
-  ansible.builtin.assert:
-    that:
-      - meilisearch_upgrade in ["", "dump", "dumpless"]
-    fail_msg: "meilisearch_upgrade must be '', 'dump', or 'dumpless' (got '{{ meilisearch_upgrade }}')"
 
 - name: Validate meilisearch_schedule_snapshot value
   ansible.builtin.assert:
