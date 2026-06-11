@@ -4,7 +4,8 @@
   become: true
   vars:
     meilisearch_version: "v1.19.1"
-    meilisearch_env: "development"
+    meilisearch_env: "production"
+    meilisearch_master_key: "test_master_key_1234567890"
     # Upgrade mode set on a fresh host must fall back to a fresh install
     meilisearch_upgrade: "dumpless"
   roles:
@@ -15,6 +16,8 @@
       ansible.builtin.uri:
         url: "http://localhost:7700/indexes/movies/documents"
         method: POST
+        headers:
+          Authorization: "Bearer test_master_key_1234567890"
         body_format: json
         body:
           - id: 1
@@ -37,6 +40,8 @@
       ansible.builtin.uri:
         url: "http://localhost:7700/tasks/{{ add_docs_response.json.taskUid }}"
         method: GET
+        headers:
+          Authorization: "Bearer test_master_key_1234567890"
         return_content: true
       register: indexing_task
       until: indexing_task.json.status == "succeeded"
@@ -47,6 +52,8 @@
       ansible.builtin.uri:
         url: "http://localhost:7700/indexes/movies/search"
         method: POST
+        headers:
+          Authorization: "Bearer test_master_key_1234567890"
         body_format: json
         body:
           q: ""
