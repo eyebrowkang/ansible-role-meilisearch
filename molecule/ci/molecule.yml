@@ -18,7 +18,6 @@ provisioner:
   name: ansible
   playbooks:
     converge: ../default/converge.yml
-    verify: ../default/verify.yml
   env:
     ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/.."
 
