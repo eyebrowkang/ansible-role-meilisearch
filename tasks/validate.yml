@@ -8,9 +8,21 @@
 - name: Validate master key is defined for production
   ansible.builtin.assert:
     that:
-      - meilisearch_master_key | default('') | length > 0
-    fail_msg: "meilisearch_master_key must be defined when meilisearch_env is 'production'"
+      - meilisearch_master_key | default('') | length >= 16
+    fail_msg: >-
+      meilisearch_master_key must be at least 16 bytes when meilisearch_env is 'production'
+      (got {{ meilisearch_master_key | default('') | length }} bytes); Meilisearch refuses
+      shorter keys at startup
   when: meilisearch_env == "production"
+
+- name: Validate system architecture is supported
+  ansible.builtin.assert:
+    that:
+      - ansible_architecture is defined
+      - ansible_architecture in ["x86_64", "aarch64"]
+    fail_msg: >-
+      Meilisearch binaries are only published for x86_64 and aarch64
+      (got '{{ ansible_architecture | default('undefined — this role requires gathered facts') }}')
 
 - name: Validate meilisearch_upgrade value
   ansible.builtin.assert:
