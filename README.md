@@ -72,6 +72,7 @@ Any Linux distribution with systemd support and python3 installed. Tested on Deb
 
 ### Notes
 
+- If `meilisearch_upgrade` is set but Meilisearch is not installed yet, the role performs a fresh install of `meilisearch_version` instead of an upgrade.
 - `meilisearch_http_addr` must be `host:port` or `[IPv6]:port` (no scheme).
 - If `meilisearch_http_addr` is `0.0.0.0` or `::`, the role uses `127.0.0.1` or `::1` for internal health checks.
 - `meilisearch_config_custom_options` and `meilisearch_config_template` are mutually exclusive; if both are set, the template takes precedence and custom options are ignored.

@@ -5,6 +5,8 @@
   vars:
     meilisearch_version: "v1.19.1"
     meilisearch_env: "development"
+    # Upgrade mode set on a fresh host must fall back to a fresh install
+    meilisearch_upgrade: "dumpless"
   roles:
     - role: eyebrowkang.meilisearch
 

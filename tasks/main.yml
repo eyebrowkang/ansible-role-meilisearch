@@ -22,7 +22,7 @@
 
 - name: Install
   ansible.builtin.include_tasks: install.yml
-  when: meilisearch_upgrade == ""
+  when: meilisearch_upgrade == "" or (_meilisearch_fresh_install | default(false) | bool)
 
 - name: Configure
   ansible.builtin.include_tasks: configure.yml
