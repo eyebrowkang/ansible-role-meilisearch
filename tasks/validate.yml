@@ -21,7 +21,11 @@
 - name: Validate meilisearch_schedule_snapshot value
   ansible.builtin.assert:
     that:
-      - meilisearch_schedule_snapshot is sameas false or (not (meilisearch_schedule_snapshot is boolean) and (meilisearch_schedule_snapshot | string) is match('^[0-9]+$') and (meilisearch_schedule_snapshot | int > 0))
+      - >-
+        meilisearch_schedule_snapshot is sameas false or
+        (not (meilisearch_schedule_snapshot is boolean) and
+         (meilisearch_schedule_snapshot | string) is match('^[0-9]+$') and
+         (meilisearch_schedule_snapshot | int > 0))
     fail_msg: "meilisearch_schedule_snapshot must be false or a positive integer (got '{{ meilisearch_schedule_snapshot }}')"
 
 - name: Validate meilisearch_version starts with v
