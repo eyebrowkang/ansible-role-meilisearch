@@ -1,5 +1,7 @@
 # ansible-role-meilisearch
 
+[![CI](https://github.com/eyebrowkang/ansible-role-meilisearch/actions/workflows/ci.yml/badge.svg)](https://github.com/eyebrowkang/ansible-role-meilisearch/actions/workflows/ci.yml)
+
 An Ansible role to install, configure, and upgrade Meilisearch as a systemd service on Linux systems.
 
 > **Note:** This role targets Meilisearch v1.19+ and may not work with older versions.
@@ -24,6 +26,7 @@ This role automates the deployment of [Meilisearch](https://www.meilisearch.com/
 - Ansible >= 2.16
 - Target system with systemd support
 - Internet access for downloading Meilisearch binary
+- Fact gathering enabled (the role uses `ansible_architecture` and `ansible_date_time`)
 
 ## Supported Platforms
 
@@ -42,7 +45,7 @@ Any Linux distribution with systemd support and python3 installed. Tested on Deb
 
 | Variable                 | Description                                                                                 |
 | ------------------------ | ------------------------------------------------------------------------------------------- |
-| `meilisearch_master_key` | Master key for securing Meilisearch API. Required for production and for dumpless upgrades. |
+| `meilisearch_master_key` | Master key for securing Meilisearch API. Required (at least 16 bytes) when `meilisearch_env` is `production`; optional otherwise. |
 
 ### Default Variables
 
@@ -178,6 +181,20 @@ Generate a master key:
 ```bash
 openssl rand -hex 16
 ```
+
+## Testing
+
+This role is tested with [Molecule](https://ansible.readthedocs.io/projects/molecule/). Most scenarios use the vagrant/libvirt driver; the `ci` scenario uses the docker driver and runs in GitHub Actions.
+
+```bash
+# Full test of a single scenario (vagrant/libvirt)
+molecule test -s default
+
+# Container smoke test (docker)
+molecule test -s ci
+```
+
+Scenarios: `default`, `http_addr`, `production_master_key`, `config_options`, `upgrade_dump`, `upgrade_dumpless`, `ci`.
 
 ## License
 
