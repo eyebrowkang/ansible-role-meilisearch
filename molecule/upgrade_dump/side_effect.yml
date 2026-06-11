@@ -1,0 +1,54 @@
+---
+- name: Side effect (downgrade prevention and same-version no-op)
+  hosts: all
+  become: true
+  tasks:
+    - name: Attempt downgrade to v1.19.1
+      block:
+        - name: Run role with older version
+          ansible.builtin.include_role:
+            name: eyebrowkang.meilisearch
+          vars:
+            meilisearch_version: "v1.19.1"
+            meilisearch_env: "development"
+            meilisearch_upgrade: "dump"
+
+        - name: Record unexpected success
+          ansible.builtin.set_fact:
+            _downgrade_blocked: false
+      rescue:
+        - name: Downgrade was blocked as expected
+          ansible.builtin.debug:
+            msg: "Downgrade correctly rejected: {{ ansible_failed_result.msg | default('') }}"
+
+    - name: Assert downgrade was blocked
+      ansible.builtin.assert:
+        that: _downgrade_blocked | default(true)
+        fail_msg: "Downgrade to v1.19.1 unexpectedly succeeded"
+
+    - name: Capture service state before same-version run
+      ansible.builtin.systemd_service:
+        name: meilisearch
+      register: service_before
+
+    - name: Run role again with the current version (must be a no-op)
+      ansible.builtin.include_role:
+        name: eyebrowkang.meilisearch
+      vars:
+        meilisearch_version: "v1.26.0"
+        meilisearch_env: "development"
+        meilisearch_upgrade: "dump"
+
+    - name: Capture service state after same-version run
+      ansible.builtin.systemd_service:
+        name: meilisearch
+      register: service_after
+
+    - name: Assert the service was not restarted by the no-op run
+      ansible.builtin.assert:
+        that:
+          - service_after.status.ExecMainStartTimestamp == service_before.status.ExecMainStartTimestamp
+        fail_msg: >-
+          Same-version run restarted the service
+          (before: {{ service_before.status.ExecMainStartTimestamp }},
+          after: {{ service_after.status.ExecMainStartTimestamp }})
