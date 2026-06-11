@@ -123,21 +123,41 @@
   register: _meilisearch_import_job
   changed_when: true
 
-- name: Wait for Meilisearch health endpoint after import
-  ansible.builtin.uri:
-    url: "{{ _meilisearch_health_url }}"
-    method: GET
-    return_content: true
-    status_code: 200
-  register: _meilisearch_import_health
-  retries: "{{ meilisearch_import_health_retries }}"
-  delay: "{{ meilisearch_import_health_delay }}"
-  until: _meilisearch_import_health.status == 200
+- name: Wait for dump import to become healthy
+  block:
+    - name: Wait for Meilisearch health endpoint after import
+      ansible.builtin.uri:
+        url: "{{ _meilisearch_health_url }}"
+        method: GET
+        return_content: true
+        status_code: 200
+      register: _meilisearch_import_health
+      retries: "{{ meilisearch_import_health_retries }}"
+      delay: "{{ meilisearch_import_health_delay }}"
+      until: _meilisearch_import_health.status == 200
+  rescue:
+    - name: Check import job result
+      ansible.builtin.async_status:
+        jid: "{{ _meilisearch_import_job.ansible_job_id }}"
+      become: true
+      become_user: "{{ meilisearch_user }}"
+      register: _meilisearch_import_result
+      failed_when: false
 
-- name: Stop the import process
+    - name: Fail with import job details
+      ansible.builtin.fail:
+        msg: >-
+          Dump import did not become healthy in time
+          (job finished: {{ _meilisearch_import_result.finished | default('unknown') }},
+          rc: {{ _meilisearch_import_result.rc | default('n/a') }}).
+          Stderr: {{ _meilisearch_import_result.stderr | default('') | trim }}
+
+- name: Clean up import async job
   ansible.builtin.async_status:
     jid: "{{ _meilisearch_import_job.ansible_job_id }}"
     mode: cleanup
+  become: true
+  become_user: "{{ meilisearch_user }}"
   failed_when: false
 
 - name: Ensure Meilisearch process from import is stopped
