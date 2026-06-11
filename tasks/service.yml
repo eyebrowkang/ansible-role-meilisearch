@@ -1,13 +1,13 @@
 ---
+- name: Flush handlers before service start
+  ansible.builtin.meta: flush_handlers
+
 - name: Start and enable Meilisearch service
   ansible.builtin.systemd_service:
     name: meilisearch
     state: started
     enabled: true
     daemon_reload: true
-
-- name: Flush handlers before health check
-  ansible.builtin.meta: flush_handlers
 
 - name: Wait for Meilisearch service to be ready
   ansible.builtin.wait_for:
