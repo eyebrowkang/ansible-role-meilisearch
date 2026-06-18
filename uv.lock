@@ -419,12 +419,6 @@ wheels = [
 ]
 
 [[package]]
-name = "libvirt-python"
-version = "12.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cc/d8/eae5574b40e437efa6d6f4f8e5042f4b8ddaf26db5d85305a0d85524e07c/libvirt_python-12.4.0.tar.gz", hash = "sha256:e24ade7e9b774b56ce3ea6c69ea06b99103391b09c8d9f77a308584b79c9a00d", size = 245162, upload-time = "2026-06-01T10:26:16.136Z" }
-
-[[package]]
 name = "markdown-it-py"
 version = "4.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -521,16 +515,6 @@ dev = [
     { name = "molecule" },
     { name = "yamllint" },
 ]
-vagrant = [
-    { name = "ansible-core" },
-    { name = "ansible-lint" },
-    { name = "docker" },
-    { name = "libvirt-python" },
-    { name = "molecule" },
-    { name = "molecule-plugins", extra = ["vagrant"] },
-    { name = "python-vagrant" },
-    { name = "yamllint" },
-]
 
 [package.metadata]
 
@@ -540,16 +524,6 @@ dev = [
     { name = "ansible-lint", specifier = ">=26,<27" },
     { name = "docker", specifier = ">=7" },
     { name = "molecule", specifier = ">=26,<27" },
-    { name = "yamllint", specifier = ">=1.35" },
-]
-vagrant = [
-    { name = "ansible-core", specifier = ">=2.21,<2.22" },
-    { name = "ansible-lint", specifier = ">=26,<27" },
-    { name = "docker", specifier = ">=7" },
-    { name = "libvirt-python", specifier = ">=10" },
-    { name = "molecule", specifier = ">=26,<27" },
-    { name = "molecule-plugins", extras = ["vagrant"], specifier = ">=25.8,<26" },
-    { name = "python-vagrant", specifier = ">=1.0" },
     { name = "yamllint", specifier = ">=1.35" },
 ]
 
@@ -573,23 +547,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/09/e0/f671b5b0742a60b6067cbe9e57720b600ded5e0fcabb837663dd21b57568/molecule-26.4.0.tar.gz", hash = "sha256:12e4c905079f67628ae765506c697d2b8a744a65f2d4cbf5a3b22cb09d0dafc4", size = 4699013, upload-time = "2026-04-06T09:01:33.016Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ee/11/9f8322de3674b6ac12d0d203d18f81eb9262af19d2b8122c08b11821af97/molecule-26.4.0-py3-none-any.whl", hash = "sha256:b231f4955f95240a8e2b8194c086d0b5e8ab998032a9411eafe85429442a3bd5", size = 158898, upload-time = "2026-04-06T09:01:31.287Z" },
-]
-
-[[package]]
-name = "molecule-plugins"
-version = "25.8.12"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "molecule" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/65/11/b7316c96c9ecca901f3a7fd5927f3dd757e17e11a428fb83cc5349e9b063/molecule_plugins-25.8.12.tar.gz", hash = "sha256:75f32763e90275bfc24bcc0d27b9bb22ac973658bf902b2e3e8af8e2a1c32083", size = 106414, upload-time = "2025-08-12T19:57:36.628Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/ee/efdf33ffb32861d9b357a4e7cff018206729703440c028b92ed64fe834b1/molecule_plugins-25.8.12-py3-none-any.whl", hash = "sha256:c5b8ceb209a5ff87326631d60408f8d08b9431b2e339dad4c620130b50279ce0", size = 76357, upload-time = "2025-08-12T19:57:35.285Z" },
-]
-
-[package.optional-dependencies]
-vagrant = [
-    { name = "python-vagrant" },
 ]
 
 [[package]]
@@ -653,15 +610,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c3/b2/bc9c9196916376152d655522fdcebac55e66de6603a76a02bca1b6414f6c/pygments-2.20.0.tar.gz", hash = "sha256:6757cd03768053ff99f3039c1a36d6c0aa0b263438fcab17520b30a303a82b5f", size = 4955991, upload-time = "2026-03-29T13:29:33.898Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/7e/a72dd26f3b0f4f2bf1dd8923c85f7ceb43172af56d63c7383eb62b332364/pygments-2.20.0-py3-none-any.whl", hash = "sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176", size = 1231151, upload-time = "2026-03-29T13:29:30.038Z" },
-]
-
-[[package]]
-name = "python-vagrant"
-version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2b/3f/2e42a44c9705d72d9925fe8daf00f31bcf82e8b84ec5a752a8a1357c3ef8/python-vagrant-1.0.0.tar.gz", hash = "sha256:a8fe93ccf2ff37ecc95ec2f49ea74a91a6ce73a4db4a16a98dd26d397cfd09e5", size = 36742, upload-time = "2022-03-31T11:38:58.168Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/f7/15a056441dcb0b1e7e4730e8e80926a3bd3c79671dc6688323342ff25564/python_vagrant-1.0.0-py3-none-any.whl", hash = "sha256:9f24a29e3f7b17d79c399d0f358d9cc1b76fd5495698c438a39cdae89de467f0", size = 19385, upload-time = "2022-03-31T11:38:56.161Z" },
 ]
 
 [[package]]
