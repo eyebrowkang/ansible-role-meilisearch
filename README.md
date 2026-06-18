@@ -184,7 +184,7 @@ openssl rand -hex 16
 
 ## Testing
 
-This role is tested with [Molecule](https://ansible.readthedocs.io/projects/molecule/). The default scenario uses Docker and mirrors GitHub Actions; the VM scenarios use vagrant/libvirt.
+This role is tested with [Molecule](https://ansible.readthedocs.io/projects/molecule/). The scenarios use systemd-enabled Docker containers and the default scenario mirrors GitHub Actions.
 
 ```bash
 # Install the local dev toolchain
@@ -192,13 +192,9 @@ uv sync
 
 # Container smoke test (docker)
 make test
-
-# Default VM scenario (vagrant/libvirt)
-uv sync --group vagrant
-make test-vm
 ```
 
-Scenarios: `default` (docker), `vagrant`, `http_addr`, `production_master_key`, `config_options`, `upgrade_dump`, `upgrade_dumpless`.
+Scenarios: `default`, `http_addr`, `production_master_key`, `config_options`, `upgrade_dump`, `upgrade_dumpless`.
 
 ## License
 

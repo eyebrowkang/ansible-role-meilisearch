@@ -1,3 +1,0 @@
----
-- name: Run the shared default converge playbook
-  ansible.builtin.import_playbook: ../default/converge.yml

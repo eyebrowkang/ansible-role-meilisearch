@@ -1,19 +1,39 @@
 ---
+dependency:
+  name: galaxy
+
 driver:
-  name: vagrant
-  provider:
-    name: libvirt
+  name: default
+  options:
+    managed: true
 
 platforms:
   - name: meilisearch-upgrade-dumpless
-    box: generic/debian12
-    cpus: 1
-    memory: 2048
+    image: "geerlingguy/docker-${MOLECULE_DISTRO:-debian12}-ansible:latest"
+    systemd: true
+    groups:
+      - meilisearch_servers
 
 provisioner:
   name: ansible
-  env:
-    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/.."
+  playbooks:
+    create: ../default/create.yml
+    destroy: ../default/destroy.yml
+    prepare: prepare.yml
+    converge: converge.yml
+    verify: verify.yml
 
 verifier:
   name: ansible
+
+scenario:
+  name: upgrade_dumpless
+  test_sequence:
+    - dependency
+    - destroy
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - destroy
