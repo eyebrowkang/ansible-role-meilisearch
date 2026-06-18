@@ -70,7 +70,7 @@
 
 - name: Backup data directory
   ansible.builtin.command:
-    cmd: "mv {{ meilisearch_db_path }} {{ meilisearch_db_path }}.bak.{{ ansible_date_time.iso8601_basic_short }}"
+    cmd: "mv {{ meilisearch_db_path }} {{ meilisearch_db_path }}.bak.{{ ansible_facts.date_time.iso8601_basic_short }}"
   changed_when: true
   when:
     - _meilisearch_db_path_stat.stat.exists

@@ -4,7 +4,7 @@
     update_cache: true
     cache_valid_time: 3600
   changed_when: false
-  when: ansible_pkg_mgr == "apt"
+  when: ansible_facts.get('pkg_mgr') == "apt"
 
 - name: Install acl package (required for become_user)
   ansible.builtin.package:

@@ -14,11 +14,11 @@
 - name: Validate system architecture is supported
   ansible.builtin.assert:
     that:
-      - ansible_architecture is defined
-      - ansible_architecture in ["x86_64", "aarch64"]
+      - ansible_facts.get('architecture') is not none
+      - ansible_facts.get('architecture') in ["x86_64", "aarch64"]
     fail_msg: >-
       Meilisearch binaries are only published for x86_64 and aarch64
-      (got '{{ ansible_architecture | default('undefined — this role requires gathered facts') }}')
+      (got '{{ ansible_facts.get('architecture', 'undefined - this role requires gathered facts') }}')
 
 - name: Validate meilisearch_schedule_snapshot value
   ansible.builtin.assert:
