@@ -9,7 +9,7 @@ argument_specs:
     options:
       meilisearch_version:
         type: str
-        description: Meilisearch version to install or upgrade to (must start with 'v').
+        description: Meilisearch version to install or upgrade to. Must start with C(v).
       meilisearch_user:
         type: str
         description: System user to run Meilisearch.
@@ -28,7 +28,7 @@ argument_specs:
       meilisearch_env:
         type: str
         choices: ["production", "development"]
-        description: Instance environment.
+        description: Instance environment. C(production) requires C(meilisearch_master_key).
       meilisearch_http_addr:
         type: str
         description: HTTP listen address (host:port or [IPv6]:port, no scheme).
@@ -36,7 +36,7 @@ argument_specs:
         type: str
         required: false
         no_log: true
-        description: Master key securing the Meilisearch API. Required in production (>= 16 bytes).
+        description: Master key securing the Meilisearch API. Required in production and must be at least 16 bytes.
       meilisearch_no_analytics:
         type: bool
         description: Disable built-in telemetry.
@@ -48,14 +48,14 @@ argument_specs:
         description: Directory for snapshot files.
       meilisearch_schedule_snapshot:
         type: raw
-        description: Schedule periodic snapshots (false or a positive integer in seconds).
+        description: Schedule periodic snapshots. Use C(false) or a positive integer number of seconds.
       meilisearch_upgrade:
         type: str
         choices: ["", "dump", "dumpless"]
-        description: Upgrade mode.
+        description: Upgrade mode. Leave empty for fresh install or configuration-only runs.
       meilisearch_checksum:
         type: str
-        description: SHA256 checksum for binary verification (overrides built-in checksums).
+        description: SHA256 checksum for binary verification. Overrides built-in checksums and is passed to get_url.
       meilisearch_upgrade_snapshot_timeout_retries:
         type: int
         description: Number of retries when polling upgrade snapshot/dump task status.
@@ -70,10 +70,10 @@ argument_specs:
         description: Seconds between health checks after dump import.
       meilisearch_config_template:
         type: str
-        description: Path to a custom TOML config template.
+        description: Template used to render meilisearch.toml.
       meilisearch_config_custom_options:
         type: str
-        description: Raw TOML lines appended to the generated config file (default template only).
+        description: Raw TOML lines appended by the built-in config template.
       meilisearch_env_variables:
         type: dict
-        description: Environment variables for the env file (created when non-empty, removed when empty).
+        description: Environment variables rendered to the optional systemd EnvironmentFile.
