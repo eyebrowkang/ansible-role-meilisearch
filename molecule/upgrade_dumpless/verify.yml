@@ -56,6 +56,8 @@
       ansible.builtin.uri:
         url: "http://localhost:7700/indexes/movies/search"
         method: POST
+        headers:
+          Authorization: "Bearer test_master_key_1234567890"
         body_format: json
         body:
           q: "Shawshank"
@@ -73,6 +75,8 @@
       ansible.builtin.uri:
         url: "http://localhost:7700/indexes/movies/search"
         method: POST
+        headers:
+          Authorization: "Bearer test_master_key_1234567890"
         body_format: json
         body:
           q: ""

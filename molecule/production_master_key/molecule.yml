@@ -1,20 +1,37 @@
 ---
+dependency:
+  name: galaxy
+
 driver:
-  name: vagrant
-  provider:
-    name: libvirt
+  name: default
+  options:
+    managed: true
 
 platforms:
   - name: meilisearch-production-master-key
-    box: generic/debian12
-    cpus: 1
-    memory: 2048
+    image: "geerlingguy/docker-${MOLECULE_DISTRO:-debian12}-ansible:latest"
+    systemd: true
+    groups:
+      - meilisearch_servers
 
 provisioner:
   name: ansible
-  lint: ansible-lint
-  env:
-    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/.."
+  playbooks:
+    create: ../default/create.yml
+    destroy: ../default/destroy.yml
+    converge: converge.yml
+    verify: verify.yml
 
 verifier:
   name: ansible
+
+scenario:
+  name: production_master_key
+  test_sequence:
+    - dependency
+    - destroy
+    - create
+    - converge
+    - idempotence
+    - verify
+    - destroy

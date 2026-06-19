@@ -4,7 +4,8 @@
   become: true
   vars:
     meilisearch_version: "v1.26.0"
-    meilisearch_env: "development"
+    meilisearch_env: "production"
+    meilisearch_master_key: "test_master_key_1234567890"
     meilisearch_upgrade: "dumpless"
   roles:
     - role: eyebrowkang.meilisearch

@@ -16,9 +16,9 @@
   ansible.builtin.debug:
     msg: "Current: {{ _meilisearch_current_version | default('not installed') }} -> Target: {{ meilisearch_version }}"
 
-- name: Set upgrade needed fact (binary not found)
+- name: Set fresh install fact (binary not found)
   ansible.builtin.set_fact:
-    _meilisearch_upgrade_needed: true
+    _meilisearch_fresh_install: true
   when: _meilisearch_current_version_output.rc != 0
 
 - name: Set upgrade needed fact (version comparison)

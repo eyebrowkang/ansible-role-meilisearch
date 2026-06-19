@@ -12,7 +12,7 @@
 
 - name: Create snapshot via API
   ansible.builtin.uri:
-    url: "http://{{ meilisearch_http_addr }}/snapshots"
+    url: "{{ _meilisearch_api_base_url }}/snapshots"
     method: POST
     headers: "{{ {'Authorization': 'Bearer ' + meilisearch_master_key} if meilisearch_master_key | default('') | length > 0 else omit }}"
     status_code: 202
@@ -25,7 +25,7 @@
 
 - name: Poll snapshot task until completion
   ansible.builtin.uri:
-    url: "http://{{ meilisearch_http_addr }}/tasks/{{ snapshot_response.json.taskUid }}"
+    url: "{{ _meilisearch_api_base_url }}/tasks/{{ snapshot_response.json.taskUid }}"
     method: GET
     headers: "{{ {'Authorization': 'Bearer ' + meilisearch_master_key} if meilisearch_master_key | default('') | length > 0 else omit }}"
     return_content: true
@@ -55,18 +55,8 @@
     owner: root
     group: root
 
-- name: Determine system architecture
-  ansible.builtin.set_fact:
-    meilisearch_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'aarch64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
-
-- name: Compute effective checksum
-  ansible.builtin.set_fact:
-    _meilisearch_effective_checksum: >-
-      {{ meilisearch_checksum if meilisearch_checksum != ""
-         else _meilisearch_known_checksums[meilisearch_version][meilisearch_arch]
-              if meilisearch_version in _meilisearch_known_checksums
-                 and meilisearch_arch in _meilisearch_known_checksums[meilisearch_version]
-         else "" }}
+- name: Compute binary facts
+  ansible.builtin.include_tasks: binary_facts.yml
 
 - name: Download new Meilisearch binary
   ansible.builtin.get_url:

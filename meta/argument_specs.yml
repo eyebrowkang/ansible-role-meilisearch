@@ -1,0 +1,79 @@
+---
+argument_specs:
+  main:
+    short_description: Install, configure, and upgrade Meilisearch as a systemd service
+    description:
+      - Installs the Meilisearch binary, deploys TOML and environment configuration,
+        manages the systemd service, and optionally performs dump-based or dumpless upgrades.
+    author: eyebrowkang
+    options:
+      meilisearch_version:
+        type: str
+        description: Meilisearch version to install or upgrade to. Must start with C(v).
+      meilisearch_user:
+        type: str
+        description: System user to run Meilisearch.
+      meilisearch_group:
+        type: str
+        description: System group for Meilisearch.
+      meilisearch_home:
+        type: str
+        description: Home directory for the Meilisearch user.
+      meilisearch_config_dir:
+        type: str
+        description: Directory for configuration files.
+      meilisearch_db_path:
+        type: str
+        description: Database storage path.
+      meilisearch_env:
+        type: str
+        choices: ["production", "development"]
+        description: Instance environment. C(production) requires C(meilisearch_master_key).
+      meilisearch_http_addr:
+        type: str
+        description: HTTP listen address (host:port or [IPv6]:port, no scheme).
+      meilisearch_master_key:
+        type: str
+        required: false
+        no_log: true
+        description: Master key securing the Meilisearch API. Required in production and must be at least 16 bytes.
+      meilisearch_no_analytics:
+        type: bool
+        description: Disable built-in telemetry.
+      meilisearch_dump_dir:
+        type: str
+        description: Directory for dump files.
+      meilisearch_snapshot_dir:
+        type: str
+        description: Directory for snapshot files.
+      meilisearch_schedule_snapshot:
+        type: raw
+        description: Schedule periodic snapshots. Use C(false) or a positive integer number of seconds.
+      meilisearch_upgrade:
+        type: str
+        choices: ["", "dump", "dumpless"]
+        description: Upgrade mode. Leave empty for fresh install or configuration-only runs.
+      meilisearch_checksum:
+        type: str
+        description: SHA256 checksum for binary verification. Overrides built-in checksums and is passed to get_url.
+      meilisearch_upgrade_snapshot_timeout_retries:
+        type: int
+        description: Number of retries when polling upgrade snapshot/dump task status.
+      meilisearch_upgrade_snapshot_poll_interval:
+        type: int
+        description: Seconds between polls when checking upgrade snapshot/dump task status.
+      meilisearch_import_health_retries:
+        type: int
+        description: Retries when waiting for health after dump import.
+      meilisearch_import_health_delay:
+        type: int
+        description: Seconds between health checks after dump import.
+      meilisearch_config_template:
+        type: str
+        description: Template used to render meilisearch.toml.
+      meilisearch_config_custom_options:
+        type: str
+        description: Raw TOML lines appended by the built-in config template.
+      meilisearch_env_variables:
+        type: dict
+        description: Environment variables rendered to the optional systemd EnvironmentFile.

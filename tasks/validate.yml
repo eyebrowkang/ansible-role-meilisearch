@@ -1,27 +1,33 @@
 ---
-- name: Validate meilisearch_env value
-  ansible.builtin.assert:
-    that:
-      - meilisearch_env in ["production", "development"]
-    fail_msg: "meilisearch_env must be 'production' or 'development' (got '{{ meilisearch_env }}')"
-
+# Type and choice validation (meilisearch_env, meilisearch_upgrade, ...) is
+# handled by meta/argument_specs.yml; only regex and cross-field rules live here.
 - name: Validate master key is defined for production
   ansible.builtin.assert:
     that:
-      - meilisearch_master_key | default('') | length > 0
-    fail_msg: "meilisearch_master_key must be defined when meilisearch_env is 'production'"
+      - meilisearch_master_key | default('') | length >= 16
+    fail_msg: >-
+      meilisearch_master_key must be at least 16 bytes when meilisearch_env is 'production'
+      (got {{ meilisearch_master_key | default('') | length }} bytes); Meilisearch refuses
+      shorter keys at startup
   when: meilisearch_env == "production"
 
-- name: Validate meilisearch_upgrade value
+- name: Validate system architecture is supported
   ansible.builtin.assert:
     that:
-      - meilisearch_upgrade in ["", "dump", "dumpless"]
-    fail_msg: "meilisearch_upgrade must be '', 'dump', or 'dumpless' (got '{{ meilisearch_upgrade }}')"
+      - ansible_facts.get('architecture') is not none
+      - ansible_facts.get('architecture') in ["x86_64", "aarch64"]
+    fail_msg: >-
+      Meilisearch binaries are only published for x86_64 and aarch64
+      (got '{{ ansible_facts.get('architecture', 'undefined - this role requires gathered facts') }}')
 
 - name: Validate meilisearch_schedule_snapshot value
   ansible.builtin.assert:
     that:
-      - meilisearch_schedule_snapshot is sameas false or (not (meilisearch_schedule_snapshot is boolean) and (meilisearch_schedule_snapshot | string) is match('^[0-9]+$') and (meilisearch_schedule_snapshot | int > 0))
+      - >-
+        meilisearch_schedule_snapshot is sameas false or
+        (not (meilisearch_schedule_snapshot is boolean) and
+         (meilisearch_schedule_snapshot | string) is match('^[0-9]+$') and
+         (meilisearch_schedule_snapshot | int > 0))
     fail_msg: "meilisearch_schedule_snapshot must be false or a positive integer (got '{{ meilisearch_schedule_snapshot }}')"
 
 - name: Validate meilisearch_version starts with v

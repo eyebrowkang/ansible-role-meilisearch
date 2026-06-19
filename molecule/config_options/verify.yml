@@ -1,0 +1,52 @@
+---
+- name: Verify config options scenario
+  hosts: all
+  become: true
+  tasks:
+    - name: Check Meilisearch service is active
+      ansible.builtin.systemd_service:
+        name: meilisearch
+      register: meilisearch_service
+
+    - name: Assert service is active
+      ansible.builtin.assert:
+        that:
+          - meilisearch_service.status.ActiveState == "active"
+        fail_msg: "Meilisearch service is not active (state: {{ meilisearch_service.status.ActiveState }})"
+
+    - name: Read Meilisearch config
+      ansible.builtin.slurp:
+        src: /etc/meilisearch/meilisearch.toml
+      register: config_raw
+
+    - name: Assert custom options and snapshot schedule persist
+      ansible.builtin.assert:
+        that:
+          - config_raw.content | b64decode is search('log_level = "WARN"')
+          - config_raw.content | b64decode is search('schedule_snapshot = 3600')
+        fail_msg: "Expected custom options in config"
+
+    - name: Check env file is absent after side effect
+      ansible.builtin.stat:
+        path: /etc/meilisearch/meilisearch.env
+      register: env_file
+
+    - name: Assert env file is absent
+      ansible.builtin.assert:
+        that:
+          - not env_file.stat.exists
+        fail_msg: "Env file should have been removed by the side effect play"
+
+    - name: Check health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:7700/health"
+        method: GET
+        return_content: true
+        status_code: 200
+      register: health_check
+
+    - name: Assert health endpoint returns available
+      ansible.builtin.assert:
+        that:
+          - health_check.json.status == "available"
+        fail_msg: "Health endpoint did not return 'available' status"

@@ -1,0 +1,47 @@
+---
+- name: Check deployed Meilisearch configuration exists before upgrade
+  ansible.builtin.stat:
+    path: "{{ meilisearch_config_dir }}/meilisearch.toml"
+  register: _meilisearch_deployed_config_stat
+
+- name: Fail when deployed configuration is missing before upgrade
+  ansible.builtin.fail:
+    msg: >-
+      Cannot safely run a {{ meilisearch_upgrade }} upgrade because
+      {{ meilisearch_config_dir }}/meilisearch.toml does not exist. Run the role once
+      without meilisearch_upgrade first, or provide the deployed configuration.
+  when: not _meilisearch_deployed_config_stat.stat.exists
+
+- name: Read deployed Meilisearch configuration before upgrade
+  ansible.builtin.slurp:
+    src: "{{ meilisearch_config_dir }}/meilisearch.toml"
+  register: _meilisearch_deployed_config_raw
+
+- name: Decode deployed Meilisearch configuration
+  ansible.builtin.set_fact:
+    _meilisearch_deployed_config_text: "{{ _meilisearch_deployed_config_raw.content | b64decode }}"
+
+- name: Validate upgrade-sensitive configuration is unchanged
+  ansible.builtin.assert:
+    that:
+      - _meilisearch_deployed_config_text is search(_meilisearch_config_line_regex)
+    fail_msg: >-
+      Do not change {{ item.variable }} during the same run as
+      meilisearch_upgrade={{ meilisearch_upgrade }}. Run the upgrade with the
+      currently deployed value first, then apply configuration changes in a
+      separate run after the upgraded service is healthy.
+  vars:
+    _meilisearch_config_line_regex: "(?m)^\\s*{{ item.key }}\\s*=\\s*[\"']{{ item.value | regex_escape }}[\"']\\s*$"
+  loop:
+    - key: db_path
+      variable: meilisearch_db_path
+      value: "{{ meilisearch_db_path }}"
+    - key: dump_dir
+      variable: meilisearch_dump_dir
+      value: "{{ meilisearch_dump_dir }}"
+    - key: snapshot_dir
+      variable: meilisearch_snapshot_dir
+      value: "{{ meilisearch_snapshot_dir }}"
+    - key: http_addr
+      variable: meilisearch_http_addr
+      value: "{{ meilisearch_http_addr }}"

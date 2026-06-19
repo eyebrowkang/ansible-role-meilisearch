@@ -5,13 +5,22 @@
 
 - name: Parse health check host and port
   ansible.builtin.set_fact:
-    _meilisearch_health_host_raw: "{{ (_meilisearch_http_addr_normalized | regex_replace('^\\[(.+)\\]:\\d+$', '\\1')) if _meilisearch_http_addr_normalized is match('^\\[.+\\]:\\d+$') else (_meilisearch_http_addr_normalized | regex_replace(':(\\d+)$', '')) }}"
+    _meilisearch_health_host_raw: "{{ (_meilisearch_http_addr_normalized | regex_replace('^\\[(.+)\\]:\\d+$', '\\1'))
+      if _meilisearch_http_addr_normalized is match('^\\[.+\\]:\\d+$')
+      else (_meilisearch_http_addr_normalized | regex_replace(':(\\d+)$', '')) }}"
     _meilisearch_health_port: "{{ (_meilisearch_http_addr_normalized | regex_search(':(\\d+)$') | regex_replace('^:', '')) | int }}"
 
 - name: Normalize wildcard host for health checks
   ansible.builtin.set_fact:
-    _meilisearch_health_host: "{{ '127.0.0.1' if _meilisearch_health_host_raw in ['0.0.0.0', ''] else ('::1' if _meilisearch_health_host_raw == '::' else _meilisearch_health_host_raw) }}"
+    _meilisearch_health_host: "{{ '127.0.0.1' if _meilisearch_health_host_raw in ['0.0.0.0', '']
+      else ('::1' if _meilisearch_health_host_raw == '::' else _meilisearch_health_host_raw) }}"
+
+- name: Build API base URL
+  ansible.builtin.set_fact:
+    _meilisearch_api_base_url: "{{ ('http://[' ~ _meilisearch_health_host ~ ']:' ~ _meilisearch_health_port)
+      if _meilisearch_health_host is match('.*:.*')
+      else ('http://' ~ _meilisearch_health_host ~ ':' ~ _meilisearch_health_port) }}"
 
 - name: Build health check URL
   ansible.builtin.set_fact:
-    _meilisearch_health_url: "{{ ('http://[' ~ _meilisearch_health_host ~ ']:' ~ _meilisearch_health_port ~ '/health') if _meilisearch_health_host is match('.*:.*') else ('http://' ~ _meilisearch_health_host ~ ':' ~ _meilisearch_health_port ~ '/health') }}"
+    _meilisearch_health_url: "{{ _meilisearch_api_base_url }}/health"

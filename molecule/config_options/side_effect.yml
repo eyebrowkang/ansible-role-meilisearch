@@ -1,0 +1,30 @@
+---
+- name: Side effect (unset env variables)
+  hosts: all
+  become: true
+  vars:
+    meilisearch_env: "development"
+    meilisearch_schedule_snapshot: 3600
+    meilisearch_config_custom_options: |
+      log_level = "WARN"
+    meilisearch_env_variables: {}
+  roles:
+    - role: eyebrowkang.meilisearch
+
+  post_tasks:
+    - name: Check env file
+      ansible.builtin.stat:
+        path: /etc/meilisearch/meilisearch.env
+      register: env_file
+
+    - name: Read deployed unit file
+      ansible.builtin.slurp:
+        src: /etc/systemd/system/meilisearch.service
+      register: unit_raw
+
+    - name: Assert env file is removed and unit no longer references it
+      ansible.builtin.assert:
+        that:
+          - not env_file.stat.exists
+          - unit_raw.content | b64decode is not search('EnvironmentFile')
+        fail_msg: "Env file or EnvironmentFile reference still present after unsetting variables"
