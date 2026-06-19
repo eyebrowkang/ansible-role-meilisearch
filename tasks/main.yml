@@ -12,6 +12,10 @@
   ansible.builtin.include_tasks: version_check.yml
   when: meilisearch_upgrade != ""
 
+- name: Validate upgrade-sensitive configuration
+  ansible.builtin.include_tasks: validate_upgrade_config.yml
+  when: meilisearch_upgrade != "" and (_meilisearch_upgrade_needed | default(false) | bool)
+
 - name: Upgrade (dumpless)
   ansible.builtin.include_tasks: upgrade_dumpless.yml
   when: meilisearch_upgrade == "dumpless" and (_meilisearch_upgrade_needed | default(false) | bool)
