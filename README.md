@@ -25,6 +25,7 @@ This role automates the deployment of [Meilisearch](https://www.meilisearch.com/
 
 - ansible-core >= 2.16.0
 - Target system with systemd and python3 support
+- Linux official Meilisearch binaries require glibc >= 2.35
 - Internet access for downloading Meilisearch binary
 - Fact gathering enabled (the role uses `ansible_facts.architecture` and `ansible_facts.date_time`)
 
@@ -32,7 +33,9 @@ This role automates the deployment of [Meilisearch](https://www.meilisearch.com/
 
 ### Linux
 
-Any Linux distribution with systemd support and python3 installed. The default CI scenario runs on Debian 12, Ubuntu 24.04, and Rocky Linux 9. Functional Molecule scenarios use systemd-enabled Debian 12 Docker containers by default.
+Any Linux distribution with systemd support, python3 installed, and glibc >= 2.35. The default CI scenario runs on Debian 12 and Ubuntu 24.04. Functional Molecule scenarios use systemd-enabled Debian 12 Docker containers by default.
+
+Rocky Linux 9 / EL9 ships glibc 2.34 and cannot run current official Meilisearch Linux binaries. Use a supported distribution, Docker, or build Meilisearch from source on those systems.
 
 ### Architectures
 
@@ -85,6 +88,7 @@ Any Linux distribution with systemd support and python3 installed. The default C
 - `meilisearch_config_custom_options` is appended only by the built-in `meilisearch.toml.j2` template. If you set `meilisearch_config_template` to a custom template, that template controls whether this variable is used.
 - Do not duplicate TOML keys already rendered by the built-in template in `meilisearch_config_custom_options`.
 - The environment file is rendered only when `meilisearch_env_variables` is non-empty and removed otherwise. Values are written literally as `KEY=value` lines.
+- During an upgrade run, do not change `meilisearch_db_path`, `meilisearch_dump_dir`, `meilisearch_snapshot_dir`, or `meilisearch_http_addr`. The role fails early if these values differ from the currently deployed TOML; apply storage or listen-address changes in a separate run after the upgrade is healthy.
 
 ## Dependencies
 
@@ -206,7 +210,7 @@ uv run molecule test -s upgrade_dump
 uv run molecule test -s upgrade_dumpless
 ```
 
-The `default` scenario supports the `MOLECULE_DISTRO` matrix used by CI: `debian12`, `ubuntu2404`, and `rockylinux9`. Functional scenarios default to `debian12`.
+The `default` scenario supports the `MOLECULE_DISTRO` matrix used by CI: `debian12` and `ubuntu2404`. Functional scenarios default to `debian12`.
 
 Scenarios: `default`, `http_addr`, `production_master_key`, `config_options`, `upgrade_dump`, `upgrade_dumpless`.
 
