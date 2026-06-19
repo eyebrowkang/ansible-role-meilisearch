@@ -1,4 +1,27 @@
 ---
+- name: Get GNU libc version
+  ansible.builtin.command:
+    cmd: getconf GNU_LIBC_VERSION
+  register: _meilisearch_glibc_version_output
+  changed_when: false
+  failed_when: false
+
+- name: Parse GNU libc version
+  ansible.builtin.set_fact:
+    _meilisearch_glibc_version: "{{ _meilisearch_glibc_version_output.stdout | regex_search('[0-9]+\\.[0-9]+') }}"
+  when: _meilisearch_glibc_version_output.rc == 0
+
+- name: Validate GNU libc version supports official binary
+  ansible.builtin.assert:
+    that:
+      - _meilisearch_glibc_version_output.rc == 0
+      - _meilisearch_glibc_version | default('0.0') is version('2.35', '>=')
+    fail_msg: >-
+      Meilisearch official Linux binaries require glibc >= 2.35
+      (got '{{ _meilisearch_glibc_version_output.stdout | default('unknown') }}').
+      Use a supported distribution, Docker, or preinstall a custom-built
+      Meilisearch binary before running this role without meilisearch_upgrade.
+
 - name: Determine system architecture
   ansible.builtin.set_fact:
     meilisearch_arch: "{{ 'amd64' if ansible_facts.get('architecture') == 'x86_64' else 'aarch64' }}"

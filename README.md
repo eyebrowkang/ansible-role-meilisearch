@@ -25,7 +25,7 @@ This role automates the deployment of [Meilisearch](https://www.meilisearch.com/
 
 - ansible-core >= 2.16.0
 - Target system with systemd and python3 support
-- Linux official Meilisearch binaries require glibc >= 2.35
+- Official Meilisearch Linux binary install/upgrade requires glibc >= 2.35
 - Internet access for downloading Meilisearch binary
 - Fact gathering enabled (the role uses `ansible_facts.architecture` and `ansible_facts.date_time`)
 
@@ -33,9 +33,9 @@ This role automates the deployment of [Meilisearch](https://www.meilisearch.com/
 
 ### Linux
 
-Any Linux distribution with systemd support, python3 installed, and glibc >= 2.35. The default CI scenario runs on Debian 12 and Ubuntu 24.04. Functional Molecule scenarios use systemd-enabled Debian 12 Docker containers by default.
+Any Linux distribution with systemd support and python3 installed. Installing or upgrading the official Meilisearch Linux binary additionally requires glibc >= 2.35. The default CI scenario runs on Debian 12 and Ubuntu 24.04. Functional Molecule scenarios use systemd-enabled Debian 12 Docker containers by default.
 
-Rocky Linux 9 / EL9 ships glibc 2.34 and cannot run current official Meilisearch Linux binaries. Use a supported distribution, Docker, or build Meilisearch from source on those systems.
+Rocky Linux 9 / EL9 ships glibc 2.34 and cannot run current official Meilisearch Linux binaries. Use a supported distribution, Docker, or preinstall a custom-built Meilisearch binary on those systems. Configuration-only runs against an existing binary are not blocked by the glibc check.
 
 ### Architectures
 
