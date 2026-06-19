@@ -54,6 +54,15 @@
     name: meilisearch
     state: stopped
 
+- name: Backup current binary
+  ansible.builtin.copy:
+    src: "{{ meilisearch_binary_path }}"
+    dest: "{{ meilisearch_binary_path }}.bak.{{ ansible_facts.date_time.iso8601_basic_short }}"
+    remote_src: true
+    mode: '0755'
+    owner: root
+    group: root
+
 - name: Check data directory exists
   ansible.builtin.stat:
     path: "{{ meilisearch_db_path }}"
