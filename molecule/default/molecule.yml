@@ -12,7 +12,7 @@ driver:
     managed: true
 
 platforms:
-  # Distro selected by MOLECULE_DISTRO (CI matrix: debian12, ubuntu2404, rockylinux9).
+  # Distro selected by MOLECULE_DISTRO (CI matrix: debian12, ubuntu2404).
   # systemd-enabled images so the meilisearch service unit can be tested in-container.
   - name: meilisearch-${MOLECULE_DISTRO:-debian12}
     image: "geerlingguy/docker-${MOLECULE_DISTRO:-debian12}-ansible:latest"
