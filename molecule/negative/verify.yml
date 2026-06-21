@@ -1,0 +1,27 @@
+---
+- name: Verify negative paths left the instance intact
+  hosts: all
+  become: true
+  tasks:
+    - name: Check Meilisearch service is active
+      ansible.builtin.systemd_service:
+        name: meilisearch
+      register: meilisearch_service
+
+    - name: Assert the service survived all negative tests
+      ansible.builtin.assert:
+        that:
+          - meilisearch_service.status.ActiveState == "active"
+        fail_msg: "Meilisearch service is not active (state: {{ meilisearch_service.status.ActiveState }})"
+
+    - name: Check installed version is unchanged (v1.19.1)
+      ansible.builtin.command:
+        cmd: /usr/local/bin/meilisearch --version
+      register: meilisearch_version_out
+      changed_when: false
+
+    - name: Assert no rejected upgrade/downgrade was applied
+      ansible.builtin.assert:
+        that:
+          - meilisearch_version_out.stdout is search('1\\.19\\.1')
+        fail_msg: "Version changed unexpectedly: {{ meilisearch_version_out.stdout }}"
