@@ -4,20 +4,6 @@
     path: "{{ meilisearch_binary_path }}"
   register: meilisearch_binary
 
-- name: Compute binary facts
-  ansible.builtin.include_tasks: binary_facts.yml
-  when: not meilisearch_binary.stat.exists
-
 - name: Download Meilisearch binary
-  ansible.builtin.get_url:
-    url: "https://github.com/meilisearch/meilisearch/releases/download/{{ meilisearch_version }}/meilisearch-linux-{{ meilisearch_arch }}"
-    dest: "{{ meilisearch_binary_path }}"
-    checksum: "{{ _meilisearch_effective_checksum | default(omit, true) }}"
-    mode: '0755'
-    owner: root
-    group: root
-    timeout: 120
+  ansible.builtin.include_tasks: download_binary.yml
   when: not meilisearch_binary.stat.exists
-  notify: Restart meilisearch
-  retries: 3
-  delay: 10

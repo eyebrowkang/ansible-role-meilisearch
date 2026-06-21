@@ -1,0 +1,24 @@
+---
+# Shared binary download for install and both upgrade paths.
+# Computes architecture + checksum (binary_facts.yml), then fetches the binary.
+# Callers set _meilisearch_download_force: true to replace an existing binary
+# (upgrades); install leaves it false and guards the include on binary absence.
+- name: Compute binary facts
+  ansible.builtin.include_tasks: binary_facts.yml
+
+- name: Download Meilisearch binary
+  ansible.builtin.get_url:
+    url: "https://github.com/meilisearch/meilisearch/releases/download/{{ meilisearch_version }}/meilisearch-linux-{{ meilisearch_arch }}"
+    dest: "{{ meilisearch_binary_path }}"
+    checksum: "{{ _meilisearch_effective_checksum | default(omit, true) }}"
+    mode: '0755'
+    owner: root
+    group: root
+    force: "{{ _meilisearch_download_force | default(false) }}"
+    timeout: 120
+  notify: Restart meilisearch
+  # Bare retries is intentional: since ansible-core 2.16 a bare `retries` implies
+  # `until: not failed`, so get_url retries on transient download failures. The
+  # role floor is 2.18 (meta/main.yml), safely above that threshold.
+  retries: 3
+  delay: 10
