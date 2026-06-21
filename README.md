@@ -4,6 +4,8 @@
 
 An Ansible role to install, configure, and upgrade Meilisearch as a systemd service on Linux systems.
 
+📖 [中文文档 / Chinese README](README.zh-CN.md) · [Examples](EXAMPLES.md)
+
 > **Note:** This role targets Meilisearch v1.19+ and may not work with older versions.
 
 ## Description
@@ -98,7 +100,7 @@ None.
 
 ## Examples
 
-### Minimal - Fresh Install
+### Minimal — Fresh Install
 
 ```yaml
 - name: Install Meilisearch
@@ -110,88 +112,9 @@ None.
     - eyebrowkang.meilisearch
 ```
 
-### Custom Configuration and Environment Variables
-
-```yaml
-- name: Install Meilisearch with custom config
-  hosts: search
-  become: true
-  vars:
-    meilisearch_master_key: "{{ vault_meilisearch_master_key }}"
-    meilisearch_http_addr: "0.0.0.0:7700" # bind all IPv4; health checks use 127.0.0.1
-    meilisearch_schedule_snapshot: 3600
-    meilisearch_env_variables:
-      MEILI_LOG_LEVEL: "WARN"
-  roles:
-    - eyebrowkang.meilisearch
-```
-
-### IPv6 Listen Address
-
-```yaml
-- name: Install Meilisearch with IPv6 bind
-  hosts: search
-  become: true
-  vars:
-    meilisearch_master_key: "{{ vault_meilisearch_master_key }}"
-    meilisearch_http_addr: "[::]:7700"
-  roles:
-    - eyebrowkang.meilisearch
-```
-
-### Dumpless Upgrade
-
-Upgrade an existing Meilisearch instance to a new version using the dumpless upgrade feature. The role will create a snapshot, stop the service, download the new binary, run the upgrade, and restart.
-
-```yaml
-- name: Upgrade Meilisearch (dumpless)
-  hosts: search
-  become: true
-  vars:
-    meilisearch_version: "v1.33.1"
-    meilisearch_upgrade: "dumpless"
-    meilisearch_master_key: "{{ vault_meilisearch_master_key }}"
-  roles:
-    - eyebrowkang.meilisearch
-```
-
-### Dump-Based Upgrade
-
-Upgrade by creating a dump, backing up the data directory, installing the new binary, and importing the dump. This is useful when the dumpless upgrade is not available or not desired.
-
-```yaml
-- name: Upgrade Meilisearch (dump)
-  hosts: search
-  become: true
-  vars:
-    meilisearch_version: "v1.33.1"
-    meilisearch_upgrade: "dump"
-    meilisearch_master_key: "{{ vault_meilisearch_master_key }}"
-    meilisearch_import_health_retries: 60
-    meilisearch_import_health_delay: 5
-  roles:
-    - eyebrowkang.meilisearch
-```
-
-### Vault Usage
-
-Store your master key securely with ansible-vault:
-
-```bash
-# Create an encrypted vault file
-ansible-vault create group_vars/search/vault.yml
-```
-
-```yaml
-# group_vars/search/vault.yml
-vault_meilisearch_master_key: "8d98d6a3143bc0d83be006e7bacbb46c"
-```
-
-Generate a master key:
-
-```bash
-openssl rand -hex 16
-```
+More examples — custom configuration and environment variables, IPv6 listen
+address, dumpless and dump-based upgrades, and ansible-vault usage — are in
+**[EXAMPLES.md](EXAMPLES.md)**.
 
 ## Testing
 
@@ -210,11 +133,12 @@ uv run molecule test -s http_addr
 uv run molecule test -s production_master_key
 uv run molecule test -s upgrade_dump
 uv run molecule test -s upgrade_dumpless
+uv run molecule test -s negative
 ```
 
 The `default` scenario supports the `MOLECULE_DISTRO` matrix used by CI: `debian12` and `ubuntu2404`. Functional scenarios default to `debian12`.
 
-Scenarios: `default`, `http_addr`, `production_master_key`, `config_options`, `upgrade_dump`, `upgrade_dumpless`.
+Scenarios: `default`, `http_addr`, `production_master_key`, `config_options`, `upgrade_dump`, `upgrade_dumpless`, `negative`.
 
 ## License
 
