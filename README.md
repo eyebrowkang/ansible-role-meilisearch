@@ -23,7 +23,7 @@ This role automates the deployment of [Meilisearch](https://www.meilisearch.com/
 
 ## Requirements
 
-- ansible-core >= 2.16.0
+- ansible-core >= 2.18.0
 - Target system with systemd and python3 support
 - Official Meilisearch Linux binary install/upgrade requires glibc >= 2.35
 - Internet access for downloading Meilisearch binary
