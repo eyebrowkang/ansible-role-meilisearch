@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1](https://github.com/eyebrowkang/ansible-role-meilisearch/compare/2.2.0...2.2.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* create runtime directories as 0750 ([5b6176f](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/5b6176fb65e794a1daa892a0fac50e14b6cc8e63))
+* harden the systemd unit and drop the dumpless flag after upgrade ([e88506b](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/e88506b66fe9a160c6387e24a4ea94f0406f677b))
+* keep secrets out of task output ([f489165](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/f489165636cb84a9333577b5a40ffc5ef19d4a38))
+* refuse dumpless upgrades across major versions ([57097b8](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/57097b87c9a70fedcf80746a70d96425c1986b41))
+* restore data and binary when a dump upgrade fails ([8d66300](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/8d66300ebac5291e00450d505c5057472af53f97))
+* roll back the binary when a dumpless upgrade fails ([572fd7a](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/572fd7a44a3388a422875a562c3bc8070117f0b9))
+* scope the upgrade-config check to the built-in template ([5713a86](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/5713a86b9ab79a80603df066581787ff0c0a75f4))
+
+
+### Refactoring
+
+* extract a shared download_binary task ([b37065d](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/b37065d745b36752e8f4e51d49640051ebc9a2ca))
+
+
+### Documentation
+
+* document no_log, the gated upgrade check, and the major-version guard ([96fa2ea](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/96fa2ea447f648c1b6154691536d1ec62c6244e2))
+* split examples into EXAMPLES.md and add a Chinese README ([027349e](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/027349e7021a8bcba3a7aa14ba4fb0819da44a1d))
+
+
+### Tests
+
+* add a negative-path molecule scenario ([18eadd2](https://github.com/eyebrowkang/ansible-role-meilisearch/commit/18eadd2583edf2afdb4d2403fda73bfb60ba2755))
+
 ## [2.2.0] - 2026-06-11
 
 ### Fixed
