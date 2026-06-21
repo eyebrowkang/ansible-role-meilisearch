@@ -1,0 +1,46 @@
+---
+# Negative-path scenario: drives the role with invalid input and asserts it
+# fails fast with the intended message. Docker-based, reusing the default
+# scenario's create/destroy. Not in the CI default run; exercise locally with
+# `molecule test -s negative`.
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: true
+
+platforms:
+  - name: meilisearch-negative
+    image: "geerlingguy/docker-${MOLECULE_DISTRO:-debian12}-ansible:latest"
+    systemd: true
+    groups:
+      - meilisearch_servers
+
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        ansible_become: false
+  playbooks:
+    create: ../default/create.yml
+    destroy: ../default/destroy.yml
+    converge: converge.yml
+    verify: verify.yml
+
+verifier:
+  name: ansible
+
+scenario:
+  name: negative
+  # No idempotence: the converge intentionally runs failing role invocations.
+  test_sequence:
+    - dependency
+    - destroy
+    - syntax
+    - create
+    - converge
+    - verify
+    - destroy

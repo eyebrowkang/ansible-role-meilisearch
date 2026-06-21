@@ -1,0 +1,157 @@
+---
+# Every block runs the role with invalid input and asserts it fails fast with the
+# intended message, BEFORE mutating the system. The one real install in the middle
+# provides the running instance for the downgrade / major-upgrade / config-change
+# rejection tests.
+- name: Converge (negative paths)
+  hosts: all
+  become: true
+  tasks:
+    - name: Short master key in production is rejected
+      block:
+        - name: Run role with a too-short master key
+          ansible.builtin.include_role:
+            name: eyebrowkang.meilisearch
+          vars:
+            meilisearch_env: "production"
+            meilisearch_master_key: "tooshort"
+
+        - name: Unreachable
+          ansible.builtin.fail:
+            msg: "role should have failed with a short master key"
+      rescue:
+        - name: Assert failure reason
+          ansible.builtin.assert:
+            that:
+              - "'at least 16 bytes' in (ansible_failed_result.msg | default(''))"
+            fail_msg: "Unexpected failure: {{ ansible_failed_result | default({}) }}"
+
+    - name: Malformed http_addr is rejected
+      block:
+        - name: Run role with a port-less http_addr
+          ansible.builtin.include_role:
+            name: eyebrowkang.meilisearch
+          vars:
+            meilisearch_env: "development"
+            meilisearch_http_addr: "localhost"
+
+        - name: Unreachable
+          ansible.builtin.fail:
+            msg: "role should have failed with a malformed http_addr"
+      rescue:
+        - name: Assert failure reason
+          ansible.builtin.assert:
+            that:
+              - "'host:port' in (ansible_failed_result.msg | default(''))"
+            fail_msg: "Unexpected failure: {{ ansible_failed_result | default({}) }}"
+
+    - name: Negative schedule_snapshot is rejected
+      block:
+        - name: Run role with a negative schedule_snapshot
+          ansible.builtin.include_role:
+            name: eyebrowkang.meilisearch
+          vars:
+            meilisearch_env: "development"
+            meilisearch_schedule_snapshot: -5
+
+        - name: Unreachable
+          ansible.builtin.fail:
+            msg: "role should have failed with a negative schedule_snapshot"
+      rescue:
+        - name: Assert failure reason
+          ansible.builtin.assert:
+            that:
+              - "'false or a positive integer' in (ansible_failed_result.msg | default(''))"
+            fail_msg: "Unexpected failure: {{ ansible_failed_result | default({}) }}"
+
+    - name: Version without leading v is rejected
+      block:
+        - name: Run role with a malformed version
+          ansible.builtin.include_role:
+            name: eyebrowkang.meilisearch
+          vars:
+            meilisearch_env: "development"
+            meilisearch_version: "1.33.1"
+
+        - name: Unreachable
+          ansible.builtin.fail:
+            msg: "role should have failed with a version missing the v prefix"
+      rescue:
+        - name: Assert failure reason
+          ansible.builtin.assert:
+            that:
+              - "\"must start with 'v'\" in (ansible_failed_result.msg | default(''))"
+            fail_msg: "Unexpected failure: {{ ansible_failed_result | default({}) }}"
+
+    - name: Real install (v1.19.1) for upgrade-gate tests
+      ansible.builtin.include_role:
+        name: eyebrowkang.meilisearch
+      vars:
+        meilisearch_version: "v1.19.1"
+        meilisearch_env: "development"
+
+    - name: Downgrade attempt is rejected
+      block:
+        - name: Run role with an older target version
+          ansible.builtin.include_role:
+            name: eyebrowkang.meilisearch
+          vars:
+            meilisearch_version: "v1.18.0"
+            meilisearch_env: "development"
+            meilisearch_upgrade: "dump"
+
+        - name: Unreachable
+          ansible.builtin.fail:
+            msg: "role should have refused the downgrade"
+      rescue:
+        - name: Assert failure reason
+          ansible.builtin.assert:
+            that:
+              - "'Downgrade not supported' in (ansible_failed_result.msg | default(''))"
+            fail_msg: "Unexpected failure: {{ ansible_failed_result | default({}) }}"
+
+    - name: Dumpless major-version upgrade is rejected
+      block:
+        - name: Run role with a next-major dumpless upgrade
+          ansible.builtin.include_role:
+            name: eyebrowkang.meilisearch
+          vars:
+            meilisearch_version: "v2.0.0"
+            meilisearch_env: "development"
+            meilisearch_upgrade: "dumpless"
+
+        - name: Unreachable
+          ansible.builtin.fail:
+            msg: "role should have refused the dumpless major upgrade"
+      rescue:
+        - name: Assert failure reason
+          ansible.builtin.assert:
+            that:
+              - "'across major versions' in (ansible_failed_result.msg | default(''))"
+            fail_msg: "Unexpected failure: {{ ansible_failed_result | default({}) }}"
+
+    - name: Changing db_path during an upgrade is rejected
+      block:
+        - name: Run upgrade with a changed db_path
+          ansible.builtin.include_role:
+            name: eyebrowkang.meilisearch
+          vars:
+            meilisearch_version: "v1.26.0"
+            meilisearch_env: "development"
+            meilisearch_upgrade: "dump"
+            meilisearch_db_path: "/var/lib/meilisearch/relocated"
+
+        - name: Unreachable
+          ansible.builtin.fail:
+            msg: "role should have refused the db_path change during upgrade"
+      rescue:
+        # validate_upgrade_config uses a looped assert, so the top-level msg is the
+        # generic "One or more items failed"; the per-key reason is in .results.
+        - name: Assert failure reason
+          ansible.builtin.assert:
+            that:
+              - >-
+                'changed during a' in (ansible_failed_result.msg | default('')) or
+                'changed during a' in (ansible_failed_result.results | default([])
+                  | map(attribute='msg') | join(' '))
+            fail_msg: "Unexpected failure: {{ ansible_failed_result | default({}) }}"
