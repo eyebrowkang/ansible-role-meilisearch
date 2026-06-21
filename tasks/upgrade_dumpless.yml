@@ -55,18 +55,31 @@
     owner: root
     group: root
 
-- name: Compute binary facts
-  ansible.builtin.include_tasks: binary_facts.yml
+- name: Upgrade Meilisearch binary
+  block:
+    - name: Download new Meilisearch binary
+      ansible.builtin.include_tasks: download_binary.yml
+      vars:
+        _meilisearch_download_force: true
+  rescue:
+    - name: Restore previous Meilisearch binary
+      ansible.builtin.copy:
+        src: "{{ meilisearch_binary_path }}.bak"
+        dest: "{{ meilisearch_binary_path }}"
+        remote_src: true
+        mode: '0755'
+        owner: root
+        group: root
 
-- name: Download new Meilisearch binary
-  ansible.builtin.get_url:
-    url: "https://github.com/meilisearch/meilisearch/releases/download/{{ meilisearch_version }}/meilisearch-linux-{{ meilisearch_arch }}"
-    dest: "{{ meilisearch_binary_path }}"
-    checksum: "{{ _meilisearch_effective_checksum | default(omit, true) }}"
-    mode: '0755'
-    owner: root
-    group: root
-    force: true
-    timeout: 120
-  retries: 3
-  delay: 10
+    - name: Restart previous Meilisearch service after rollback
+      ansible.builtin.systemd_service:
+        name: meilisearch
+        state: started
+      failed_when: false
+
+    - name: Fail with dumpless upgrade error
+      ansible.builtin.fail:
+        msg: >-
+          Meilisearch binary download failed. The previous binary has been
+          restored and the service restarted. Check network connectivity and
+          verify the target version {{ meilisearch_version }} exists.
