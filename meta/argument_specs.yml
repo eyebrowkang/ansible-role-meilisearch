@@ -77,3 +77,8 @@ argument_specs:
       meilisearch_env_variables:
         type: dict
         description: Environment variables rendered to the optional systemd EnvironmentFile.
+      meilisearch_no_log:
+        type: bool
+        description: >-
+          Hide task output that may contain secrets (the rendered config and
+          environment file). Set to false only when debugging.

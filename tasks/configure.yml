@@ -7,20 +7,22 @@
     group: "{{ meilisearch_group }}"
     mode: '0640'
   diff: false
+  no_log: "{{ meilisearch_no_log }}"
   notify: Restart meilisearch
 
 - name: Deploy environment file
   ansible.builtin.copy:
     content: |
       # Managed by Ansible
-      {% for key, value in meilisearch_env_variables.items() %}
-      {{ key }}={{ value }}
+      {% for key, value in meilisearch_env_variables | default({}, true) | dictsort %}
+      {{ key }}={{ value | to_json }}
       {% endfor %}
     dest: "{{ meilisearch_config_dir }}/meilisearch.env"
     owner: "{{ meilisearch_user }}"
     group: "{{ meilisearch_group }}"
     mode: '0640'
   diff: false
+  no_log: "{{ meilisearch_no_log }}"
   when: meilisearch_env_variables | default({}, true) | length > 0
   notify: Restart meilisearch
 
