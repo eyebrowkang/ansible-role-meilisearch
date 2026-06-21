@@ -33,7 +33,9 @@
     state: directory
     owner: "{{ meilisearch_user }}"
     group: "{{ meilisearch_group }}"
-    mode: '0755'
+    # 0750 keeps dumps/snapshots (which contain index data) and the config dir
+    # readable only by the meilisearch user/group, not all local users.
+    mode: '0750'
   loop:
     - "{{ meilisearch_config_dir }}"
     - "{{ meilisearch_db_path }}"
