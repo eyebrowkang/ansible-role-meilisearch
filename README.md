@@ -75,6 +75,7 @@ Rocky Linux 9 / EL9 ships glibc 2.34 and cannot run current official Meilisearch
 | `meilisearch_config_template`                  | `"meilisearch.toml.j2"`              | Path to a custom TOML config template                                  |
 | `meilisearch_config_custom_options`            | `""`                                 | Raw TOML lines appended by the built-in config template                 |
 | `meilisearch_env_variables`                    | `{}`                                 | Dict rendered as the optional systemd environment file                  |
+| `meilisearch_no_log`                           | `true`                               | Hide task output that may contain secrets (set `false` only to debug)   |
 
 ### Notes
 
@@ -87,8 +88,9 @@ Rocky Linux 9 / EL9 ships glibc 2.34 and cannot run current official Meilisearch
 - Built-in checksums currently cover `v1.19.1` and `v1.33.1`. Set `meilisearch_checksum` for other versions when checksum verification is required. The value is passed directly to `ansible.builtin.get_url`, for example `sha256:<digest>`.
 - `meilisearch_config_custom_options` is appended only by the built-in `meilisearch.toml.j2` template. If you set `meilisearch_config_template` to a custom template, that template controls whether this variable is used.
 - Do not duplicate TOML keys already rendered by the built-in template in `meilisearch_config_custom_options`.
-- The environment file is rendered only when `meilisearch_env_variables` is non-empty and removed otherwise. Values are written literally as `KEY=value` lines.
-- During an upgrade run, do not change `meilisearch_db_path`, `meilisearch_dump_dir`, `meilisearch_snapshot_dir`, or `meilisearch_http_addr`. The role fails early if these values differ from the currently deployed TOML; apply storage or listen-address changes in a separate run after the upgrade is healthy.
+- The environment file is rendered only when `meilisearch_env_variables` is non-empty and removed otherwise. Values are JSON-encoded (`KEY="value"`) so spaces and special characters survive systemd's `EnvironmentFile` parsing.
+- During an upgrade run, do not change `meilisearch_db_path`, `meilisearch_dump_dir`, `meilisearch_snapshot_dir`, or `meilisearch_http_addr`. The role fails early if these values differ from the currently deployed TOML; apply storage or listen-address changes in a separate run after the upgrade is healthy. This check reads the deployed TOML and therefore only runs with the built-in `meilisearch.toml.j2` template; with a custom `meilisearch_config_template` it is skipped (you are responsible for keeping those paths stable during the upgrade).
+- A dumpless upgrade across major versions is refused, because dumps are Meilisearch's supported cross-major mechanism — use `meilisearch_upgrade: dump` to cross a major version.
 
 ## Dependencies
 
