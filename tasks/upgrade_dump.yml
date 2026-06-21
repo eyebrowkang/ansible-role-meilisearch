@@ -49,6 +49,15 @@
   ansible.builtin.debug:
     msg: "Dump UID: {{ _meilisearch_dump_uid }}"
 
+# Capture backup/PID paths once so the backup tasks and the rescue refer to the
+# exact same targets (ansible_facts.date_time is stable within a run, but pinning
+# it to facts keeps the restore unambiguous).
+- name: Compute dump-upgrade backup paths
+  ansible.builtin.set_fact:
+    _meilisearch_binary_backup: "{{ meilisearch_binary_path }}.bak.{{ ansible_facts.date_time.iso8601_basic_short }}"
+    _meilisearch_db_backup: "{{ meilisearch_db_path }}.bak.{{ ansible_facts.date_time.iso8601_basic_short }}"
+    _meilisearch_import_pidfile: "{{ meilisearch_home }}/meilisearch-import.pid"
+
 - name: Stop Meilisearch service
   ansible.builtin.systemd_service:
     name: meilisearch
@@ -57,7 +66,7 @@
 - name: Backup current binary
   ansible.builtin.copy:
     src: "{{ meilisearch_binary_path }}"
-    dest: "{{ meilisearch_binary_path }}.bak.{{ ansible_facts.date_time.iso8601_basic_short }}"
+    dest: "{{ _meilisearch_binary_backup }}"
     remote_src: true
     mode: '0755'
     owner: root
@@ -77,13 +86,15 @@
   register: _meilisearch_db_contents
   when: _meilisearch_db_path_stat.stat.exists
 
+- name: Record whether the data directory was backed up
+  ansible.builtin.set_fact:
+    _meilisearch_db_backed_up: "{{ _meilisearch_db_path_stat.stat.exists and (_meilisearch_db_contents.matched | default(0) | int) > 0 }}"
+
 - name: Backup data directory
   ansible.builtin.command:
-    cmd: "mv {{ meilisearch_db_path }} {{ meilisearch_db_path }}.bak.{{ ansible_facts.date_time.iso8601_basic_short }}"
+    cmd: "mv {{ meilisearch_db_path }} {{ _meilisearch_db_backup }}"
   changed_when: true
-  when:
-    - _meilisearch_db_path_stat.stat.exists
-    - (_meilisearch_db_contents.matched | default(0) | int) > 0
+  when: _meilisearch_db_backed_up | bool
 
 - name: Re-create empty data directory
   ansible.builtin.file:
@@ -91,39 +102,32 @@
     state: directory
     owner: "{{ meilisearch_user }}"
     group: "{{ meilisearch_group }}"
-    mode: '0755'
+    mode: '0750'
 
-- name: Compute binary facts
-  ansible.builtin.include_tasks: binary_facts.yml
-
-- name: Download new Meilisearch binary
-  ansible.builtin.get_url:
-    url: "https://github.com/meilisearch/meilisearch/releases/download/{{ meilisearch_version }}/meilisearch-linux-{{ meilisearch_arch }}"
-    dest: "{{ meilisearch_binary_path }}"
-    checksum: "{{ _meilisearch_effective_checksum | default(omit, true) }}"
-    mode: '0755'
-    owner: root
-    group: root
-    force: true
-    timeout: 120
-  retries: 3
-  delay: 10
-
-- name: Import dump into new version
-  ansible.builtin.command:
-    cmd: >-
-      {{ meilisearch_binary_path }}
-      --config-file-path {{ meilisearch_config_dir }}/meilisearch.toml
-      --import-dump {{ meilisearch_dump_dir }}/{{ _meilisearch_dump_uid }}.dump
-  become: true
-  become_user: "{{ meilisearch_user }}"
-  async: 1800
-  poll: 0
-  register: _meilisearch_import_job
-  changed_when: true
-
-- name: Wait for dump import to become healthy
+- name: Perform dump-based upgrade
   block:
+    - name: Download new Meilisearch binary
+      ansible.builtin.include_tasks: download_binary.yml
+      vars:
+        _meilisearch_download_force: true
+
+    # `echo $$` records the shell PID, then `exec` replaces that shell with
+    # Meilisearch, so the PID file holds Meilisearch's exact PID. async/poll:0
+    # lets it keep serving while we wait for health below.
+    - name: Import dump into new version
+      ansible.builtin.shell:
+        cmd: >-
+          echo $$ > {{ _meilisearch_import_pidfile }} &&
+          exec {{ meilisearch_binary_path }}
+          --config-file-path {{ meilisearch_config_dir }}/meilisearch.toml
+          --import-dump {{ meilisearch_dump_dir }}/{{ _meilisearch_dump_uid }}.dump
+      become: true
+      become_user: "{{ meilisearch_user }}"
+      async: 1800
+      poll: 0
+      register: _meilisearch_import_job
+      changed_when: true
+
     - name: Wait for Meilisearch health endpoint after import
       ansible.builtin.uri:
         url: "{{ _meilisearch_health_url }}"
@@ -135,21 +139,55 @@
       delay: "{{ meilisearch_import_health_delay }}"
       until: _meilisearch_import_health.status == 200
   rescue:
-    - name: Check import job result
+    - name: Capture import job result for diagnostics
       ansible.builtin.async_status:
         jid: "{{ _meilisearch_import_job.ansible_job_id }}"
       become: true
       become_user: "{{ meilisearch_user }}"
       register: _meilisearch_import_result
       failed_when: false
+      when: _meilisearch_import_job.ansible_job_id is defined
 
-    - name: Fail with import job details
+    - name: Stop the failed import process
+      ansible.builtin.include_tasks: stop_import_process.yml
+
+    - name: Remove the empty data directory created for the import
+      ansible.builtin.file:
+        path: "{{ meilisearch_db_path }}"
+        state: absent
+
+    - name: Restore the original data directory
+      ansible.builtin.command:
+        cmd: "mv {{ _meilisearch_db_backup }} {{ meilisearch_db_path }}"
+      changed_when: true
+      when: _meilisearch_db_backed_up | bool
+
+    - name: Restore the original binary
+      ansible.builtin.copy:
+        src: "{{ _meilisearch_binary_backup }}"
+        dest: "{{ meilisearch_binary_path }}"
+        remote_src: true
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Restart the previous Meilisearch service after rollback
+      ansible.builtin.systemd_service:
+        name: meilisearch
+        state: started
+      failed_when: false
+
+    - name: Fail with import rollback details
       ansible.builtin.fail:
         msg: >-
           Dump import did not become healthy in time
           (job finished: {{ _meilisearch_import_result.finished | default('unknown') }},
           rc: {{ _meilisearch_import_result.rc | default('n/a') }}).
-          Stderr: {{ _meilisearch_import_result.stderr | default('') | trim }}
+          The previous binary and data directory have been restored and the
+          service restarted. Stderr: {{ _meilisearch_import_result.stderr | default('') | trim }}
+
+- name: Stop the import process before handing over to systemd
+  ansible.builtin.include_tasks: stop_import_process.yml
 
 - name: Clean up import async job
   ansible.builtin.async_status:
@@ -158,19 +196,4 @@
   become: true
   become_user: "{{ meilisearch_user }}"
   failed_when: false
-
-- name: Ensure Meilisearch process from import is stopped
-  ansible.builtin.command:
-    cmd: "pkill -f '{{ meilisearch_binary_path }} --config-file-path'"
-  failed_when: false
-  changed_when: true
-
-- name: Wait for import process to exit
-  ansible.builtin.command:
-    cmd: "pgrep -f '{{ meilisearch_binary_path }} --config-file-path'"
-  register: _meilisearch_import_pgrep
-  failed_when: false
-  changed_when: false
-  retries: 30
-  delay: 2
-  until: _meilisearch_import_pgrep.rc != 0
+  when: _meilisearch_import_job.ansible_job_id is defined

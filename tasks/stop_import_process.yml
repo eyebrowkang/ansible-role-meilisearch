@@ -1,0 +1,37 @@
+---
+# Stop the manually-launched dump-import Meilisearch process by the exact PID it
+# wrote to _meilisearch_import_pidfile (`echo $$` before `exec` gives the process
+# its own PID), then wait for it to exit. Killing by PID avoids the fragility of
+# matching the command line with `pkill -f` / `pgrep -f`.
+- name: Read import process PID
+  ansible.builtin.slurp:
+    src: "{{ _meilisearch_import_pidfile }}"
+  register: _meilisearch_import_pid_raw
+  failed_when: false
+
+- name: Set import process PID fact
+  ansible.builtin.set_fact:
+    _meilisearch_import_pid: "{{ (_meilisearch_import_pid_raw.content | b64decode | trim) if _meilisearch_import_pid_raw.content is defined else '' }}"
+
+- name: Stop import process
+  ansible.builtin.command:
+    cmd: "kill {{ _meilisearch_import_pid }}"
+  failed_when: false
+  changed_when: true
+  when: _meilisearch_import_pid | length > 0
+
+- name: Wait for import process to exit
+  ansible.builtin.command:
+    cmd: "kill -0 {{ _meilisearch_import_pid }}"
+  register: _meilisearch_import_alive
+  failed_when: false
+  changed_when: false
+  retries: 30
+  delay: 2
+  until: _meilisearch_import_alive.rc != 0
+  when: _meilisearch_import_pid | length > 0
+
+- name: Remove import PID file
+  ansible.builtin.file:
+    path: "{{ _meilisearch_import_pidfile }}"
+    state: absent
