@@ -1,3 +1,8 @@
+{# The --experimental-dumpless-upgrade flag is rendered only for the single
+   migrating start of an actual dumpless upgrade. main.yml redeploys this unit
+   with _meilisearch_render_dumpless_flag=false once the upgrade is healthy, so
+   the flag never lingers in the persistent unit. #}
+{% set _dumpless_flag = _meilisearch_render_dumpless_flag | default(meilisearch_upgrade == 'dumpless' and (_meilisearch_upgrade_needed | default(false) | bool)) %}
 [Unit]
 Description=Meilisearch
 Documentation=https://www.meilisearch.com/docs
@@ -10,7 +15,7 @@ WorkingDirectory={{ meilisearch_home }}
 {% if meilisearch_env_variables | default({}, true) | length > 0 %}
 EnvironmentFile=-{{ meilisearch_config_dir }}/meilisearch.env
 {% endif %}
-ExecStart={{ meilisearch_binary_path }} --config-file-path {{ meilisearch_config_dir }}/meilisearch.toml{{ ' --experimental-dumpless-upgrade' if meilisearch_upgrade == 'dumpless' else '' }}
+ExecStart={{ meilisearch_binary_path }} --config-file-path {{ meilisearch_config_dir }}/meilisearch.toml{{ ' --experimental-dumpless-upgrade' if _dumpless_flag else '' }}
 User={{ meilisearch_user }}
 Group={{ meilisearch_group }}
 Restart=on-failure
@@ -20,9 +25,31 @@ TimeoutStopSec=30
 # Security settings
 NoNewPrivileges=true
 PrivateTmp=true
+PrivateDevices=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths={{ meilisearch_home }} {{ meilisearch_config_dir }} {{ meilisearch_db_path }} {{ meilisearch_dump_dir }} {{ meilisearch_snapshot_dir }}
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+ProtectProc=invisible
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+# config_dir is intentionally NOT writable: ProtectSystem=strict keeps it
+# read-only to the service, which only needs to read its config.
+ReadWritePaths={{ meilisearch_home }} {{ meilisearch_db_path }} {{ meilisearch_dump_dir }} {{ meilisearch_snapshot_dir }}
+# MemoryDenyWriteExecute is deliberately omitted: it cannot be verified safe for
+# the official Meilisearch binary inside the docker CI scenario, and a W^X
+# violation would fail the service silently on real hosts. Enable it after
+# validating on your target platform if you want the extra hardening.
 
 [Install]
 WantedBy=multi-user.target
