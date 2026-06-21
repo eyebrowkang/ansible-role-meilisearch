@@ -12,36 +12,58 @@
       without meilisearch_upgrade first, or provide the deployed configuration.
   when: not _meilisearch_deployed_config_stat.stat.exists
 
-- name: Read deployed Meilisearch configuration before upgrade
-  ansible.builtin.slurp:
-    src: "{{ meilisearch_config_dir }}/meilisearch.toml"
-  register: _meilisearch_deployed_config_raw
-
-- name: Decode deployed Meilisearch configuration
-  ansible.builtin.set_fact:
-    _meilisearch_deployed_config_text: "{{ _meilisearch_deployed_config_raw.content | b64decode }}"
+# The comparison below understands only the built-in template's canonical
+# `key = "value"` rendering. With a custom meilisearch_config_template the
+# deployed file may format (or omit) these keys differently, so a literal
+# comparison would false-positive. Skip it there and leave the operator
+# responsible for not moving data paths mid-upgrade.
+- name: Warn that upgrade-config checks are skipped for a custom template
+  ansible.builtin.debug:
+    msg: >-
+      meilisearch_config_template is not the built-in template; skipping the
+      upgrade-sensitive configuration check. Ensure db_path, dump_dir,
+      snapshot_dir and http_addr are unchanged for this {{ meilisearch_upgrade }}
+      upgrade.
+  when: meilisearch_config_template != "meilisearch.toml.j2"
 
 - name: Validate upgrade-sensitive configuration is unchanged
-  ansible.builtin.assert:
-    that:
-      - _meilisearch_deployed_config_text is search(_meilisearch_config_line_regex)
-    fail_msg: >-
-      Do not change {{ item.variable }} during the same run as
-      meilisearch_upgrade={{ meilisearch_upgrade }}. Run the upgrade with the
-      currently deployed value first, then apply configuration changes in a
-      separate run after the upgraded service is healthy.
-  vars:
-    _meilisearch_config_line_regex: "(?m)^\\s*{{ item.key }}\\s*=\\s*[\"']{{ item.value | regex_escape }}[\"']\\s*$"
-  loop:
-    - key: db_path
-      variable: meilisearch_db_path
-      value: "{{ meilisearch_db_path }}"
-    - key: dump_dir
-      variable: meilisearch_dump_dir
-      value: "{{ meilisearch_dump_dir }}"
-    - key: snapshot_dir
-      variable: meilisearch_snapshot_dir
-      value: "{{ meilisearch_snapshot_dir }}"
-    - key: http_addr
-      variable: meilisearch_http_addr
-      value: "{{ meilisearch_http_addr }}"
+  when: meilisearch_config_template == "meilisearch.toml.j2"
+  block:
+    - name: Read deployed Meilisearch configuration before upgrade
+      ansible.builtin.slurp:
+        src: "{{ meilisearch_config_dir }}/meilisearch.toml"
+      register: _meilisearch_deployed_config_raw
+
+    - name: Decode deployed Meilisearch configuration
+      ansible.builtin.set_fact:
+        _meilisearch_deployed_config_text: "{{ _meilisearch_deployed_config_raw.content | b64decode }}"
+
+    # Extract the value actually on disk and compare it to the requested value,
+    # so the failure message can report both sides instead of just "no match".
+    - name: Assert upgrade-sensitive paths match the deployed configuration
+      ansible.builtin.assert:
+        that:
+          - _deployed_value == item.value
+        fail_msg: >-
+          {{ item.variable }} changed during a {{ meilisearch_upgrade }} upgrade
+          (deployed: '{{ _deployed_value }}', requested: '{{ item.value }}').
+          Run the upgrade with the currently deployed value first, then change
+          {{ item.variable }} in a separate run after the upgraded service is healthy.
+      vars:
+        _meilisearch_key_re: '(?m)^\s*{{ item.key }}\s*=\s*"([^"]*)"'
+        _deployed_value: "{{ (_meilisearch_deployed_config_text | regex_search(_meilisearch_key_re, '\\1') | default([''], true)) | first }}"
+      loop:
+        - key: db_path
+          variable: meilisearch_db_path
+          value: "{{ meilisearch_db_path }}"
+        - key: dump_dir
+          variable: meilisearch_dump_dir
+          value: "{{ meilisearch_dump_dir }}"
+        - key: snapshot_dir
+          variable: meilisearch_snapshot_dir
+          value: "{{ meilisearch_snapshot_dir }}"
+        - key: http_addr
+          variable: meilisearch_http_addr
+          value: "{{ meilisearch_http_addr }}"
+      loop_control:
+        label: "{{ item.key }}"
