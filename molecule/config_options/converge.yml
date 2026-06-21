@@ -33,6 +33,6 @@
         that:
           - config_raw.content | b64decode is search('log_level = "WARN"')
           - config_raw.content | b64decode is search('schedule_snapshot = 3600')
-          - env_raw.content | b64decode is search('RUST_BACKTRACE=1')
+          - env_raw.content | b64decode is search('RUST_BACKTRACE="1"')
           - unit_raw.content | b64decode is search('EnvironmentFile=-/etc/meilisearch/meilisearch.env')
         fail_msg: "Rendered configuration does not match expected custom options"
