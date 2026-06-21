@@ -31,6 +31,25 @@
           is newer than target version {{ meilisearch_version }}
       when: _meilisearch_current_version is version(meilisearch_version, '>')
 
+    - name: Parse major versions
+      ansible.builtin.set_fact:
+        _meilisearch_current_major: "{{ _meilisearch_current_version | regex_replace('^v(\\d+).*$', '\\1') | int }}"
+        _meilisearch_target_major: "{{ meilisearch_version | regex_replace('^v(\\d+).*$', '\\1') | int }}"
+
+    # Dumps are Meilisearch's supported cross-version mechanism, so a major-version
+    # bump must go through the dump path. The in-place dumpless migration is not
+    # guaranteed across majors, so refuse it with a pointer to the dump path.
+    - name: Fail on dumpless major-version upgrade
+      ansible.builtin.fail:
+        msg: >-
+          Dumpless upgrade across major versions is not supported
+          (current {{ _meilisearch_current_version }} -> target {{ meilisearch_version }}).
+          Use a dump-based upgrade (meilisearch_upgrade=dump) to cross major
+          versions, or follow the official Meilisearch upgrade guide.
+      when:
+        - meilisearch_upgrade == "dumpless"
+        - _meilisearch_current_major | int < _meilisearch_target_major | int
+
     - name: Set upgrade needed when versions differ
       ansible.builtin.set_fact:
         _meilisearch_upgrade_needed: "{{ _meilisearch_current_version is version(meilisearch_version, '<') }}"
